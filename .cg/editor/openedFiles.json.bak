@@ -1,0 +1,21 @@
+{
+  "allFiles": [
+    {
+      "file": "/storage/emulated/0/CodeOnTheGoProjects/Terbian/app/src/main/res/layout/activity_main.xml",
+      "selection": {
+        "end": {
+          "column": 15,
+          "index": 4986,
+          "line": 156
+        },
+        "start": {
+          "column": 15,
+          "index": 4986,
+          "line": 156
+        }
+      }
+    }
+  ],
+  "projectPath": "/storage/emulated/0/CodeOnTheGoProjects/Terbian",
+  "selectedFile": "/storage/emulated/0/CodeOnTheGoProjects/Terbian/app/src/main/res/layout/activity_main.xml"
+}

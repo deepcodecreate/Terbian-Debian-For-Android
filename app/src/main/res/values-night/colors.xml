@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#14100C</color>
+    <color name="surface">#1C1510</color>
+    <color name="surface_high">#271C15</color>
+    <color name="fg">#F3E6D8</color>
+    <color name="muted">#C9B09A</color>
+    <color name="subtle">#8F7460</color>
+    <color name="primary">#E8B089</color>
+    <color name="primary_dim">#A56B42</color>
+    <color name="primary_container">#5C3A22</color>
+    <color name="on_primary">#2A1608</color>
+    <color name="border">#3D2C22</color>
+    <color name="danger">#E89580</color>
+</resources>

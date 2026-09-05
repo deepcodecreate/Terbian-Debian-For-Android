@@ -1,0 +1,8 @@
+.gradle/
+.cf/
+**/build/
+.idea/
+*.iml
+local.properties
+.externalNativeBuild/
+.cxx/

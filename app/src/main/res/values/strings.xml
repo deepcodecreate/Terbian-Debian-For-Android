@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Terbian</string>
+    <string name="new_session">New session</string>
+    <string name="close_session">Close session</string>
+    <string name="menu">Menu</string>
+    <string name="settings">Settings</string>
+    <string name="settings_sub">Theme, cursor, keys, zoom</string>
+    <string name="close">Close</string>
+    <string name="copy_screen">Copy screen</string>
+    <string name="paste">Paste</string>
+    <string name="copied">Copied</string>
+    <string name="terminal_color">Terminal color</string>
+    <string name="terminal_color_help">Colors apply to the prompt, output, and ANSI text.</string>
+    <string name="font_size">Font size</string>
+    <string name="cursor">Cursor</string>
+    <string name="blink_cursor">Blink cursor</string>
+    <string name="blink_help">Off by default — solid block, no flicker.</string>
+    <string name="keyboard">Keyboard</string>
+    <string name="extra_keys">Extra keys (CTRL, ESC, TAB…)</string>
+    <string name="visual_bell">Visual bell</string>
+    <string name="notification_channel_running">Debian session running</string>
+    <string name="notification_running_title">Terbian</string>
+    <string name="notification_running_text">Debian shell is running in the background</string>
+    <string name="notification_session_running_text">Session running in the background</string>
+    <string name="notification_action_stop">Stop</string>
+    <string name="choose_session_type">New terminal</string>
+    <string name="session_type_debian">Debian</string>
+    <string name="session_type_debian_desc">Full Linux distro via PRoot</string>
+    <string name="session_type_shell">Shell</string>
+    <string name="session_type_shell_desc">Direct local Android shell</string>
+
+    <string name="paste_text">Paste</string>
+    <string name="copy_text">Copy</string>
+    <string name="text_selection_more">More\u2026</string>
+</resources>
