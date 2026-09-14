@@ -41,9 +41,7 @@ It is not a simple wrapper. It embeds a pre-built Debian rootfs, extracts it on 
 
 ---
 
-## Screenshots / Visual Identity
-
-> *(Add your own screenshots here)*
+## Visual Identity
 
 ```
 ┌─────────────────────────────────────┐
