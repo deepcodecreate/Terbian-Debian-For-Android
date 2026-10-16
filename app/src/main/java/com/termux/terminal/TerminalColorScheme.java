@@ -1,12 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 import java.util.Map;
 import java.util.Properties;
 
 public final class TerminalColorScheme {
-
     private static final int[] DEFAULT_COLORSCHEME = {
-
         0xff000000,
         0xffcd0000,
         0xff00cd00,
@@ -105,5 +105,4 @@ public final class TerminalColorScheme {
                 mDefaultColors[TextStyle.COLOR_INDEX_CURSOR] = 0xff000000;
         }
     }
-
 }

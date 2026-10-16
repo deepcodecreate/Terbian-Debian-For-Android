@@ -1,1 +1,16 @@
 /build
+/.gradle
+/.idea
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+release.properties
+*.jks
+*.keystore
+*.apk
+*.aab
+*.iml
+.DS_Store
+src/main/assets/debian/rootfs.tb
+src/main/assets/debian/rootfs.tb.part

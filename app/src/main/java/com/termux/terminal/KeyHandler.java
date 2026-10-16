@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 import java.util.HashMap;
@@ -13,10 +15,10 @@ import static android.view.KeyEvent.KEYCODE_DPAD_RIGHT;
 import static android.view.KeyEvent.KEYCODE_DPAD_UP;
 import static android.view.KeyEvent.KEYCODE_ENTER;
 import static android.view.KeyEvent.KEYCODE_ESCAPE;
-import static android.view.KeyEvent.KEYCODE_F1;
 import static android.view.KeyEvent.KEYCODE_F10;
 import static android.view.KeyEvent.KEYCODE_F11;
 import static android.view.KeyEvent.KEYCODE_F12;
+import static android.view.KeyEvent.KEYCODE_F1;
 import static android.view.KeyEvent.KEYCODE_F2;
 import static android.view.KeyEvent.KEYCODE_F3;
 import static android.view.KeyEvent.KEYCODE_F4;
@@ -55,7 +57,6 @@ import static android.view.KeyEvent.KEYCODE_SYSRQ;
 import static android.view.KeyEvent.KEYCODE_TAB;
 
 public final class KeyHandler {
-
     public static final int KEYMOD_ALT = 0x80000000;
     public static final int KEYMOD_CTRL = 0x40000000;
     public static final int KEYMOD_SHIFT = 0x20000000;
@@ -64,7 +65,6 @@ public final class KeyHandler {
     private static final Map<String, Integer> TERMCAP_TO_KEYCODE = new HashMap<>();
 
     static {
-
         TERMCAP_TO_KEYCODE.put("%i", KEYMOD_SHIFT | KEYCODE_DPAD_RIGHT);
         TERMCAP_TO_KEYCODE.put("#2", KEYMOD_SHIFT | KEYCODE_MOVE_HOME);
         TERMCAP_TO_KEYCODE.put("#4", KEYMOD_SHIFT | KEYCODE_DPAD_LEFT);
@@ -244,7 +244,6 @@ public final class KeyHandler {
                 if (numLockOn) {
                     return keypadApplication ? "\033On" : ".";
                 } else {
-
                     return transformForModifiers("\033[3", keyMode, '~');
                 }
             case KEYCODE_NUMPAD_SUBTRACT:
@@ -255,35 +254,30 @@ public final class KeyHandler {
                 if (numLockOn) {
                     return keypadApplication ? transformForModifiers("\033O", keyMode, 'p') : "0";
                 } else {
-
                     return transformForModifiers("\033[2", keyMode, '~');
                 }
             case KEYCODE_NUMPAD_1:
                 if (numLockOn) {
                     return keypadApplication ? transformForModifiers("\033O", keyMode, 'q') : "1";
                 } else {
-
                     return (keyMode == 0) ? (cursorApp ? "\033OF" : "\033[F") : transformForModifiers("\033[1", keyMode, 'F');
                 }
             case KEYCODE_NUMPAD_2:
                 if (numLockOn) {
                     return keypadApplication ? transformForModifiers("\033O", keyMode, 'r') : "2";
                 } else {
-
                     return (keyMode == 0) ? (cursorApp ? "\033OB" : "\033[B") : transformForModifiers("\033[1", keyMode, 'B');
                 }
             case KEYCODE_NUMPAD_3:
                 if (numLockOn) {
                     return keypadApplication ? transformForModifiers("\033O", keyMode, 's') : "3";
                 } else {
-
                     return "\033[6~";
                 }
             case KEYCODE_NUMPAD_4:
                 if (numLockOn) {
                     return keypadApplication ? transformForModifiers("\033O", keyMode, 't') : "4";
                 } else {
-
                     return (keyMode == 0) ? (cursorApp ? "\033OD" : "\033[D") : transformForModifiers("\033[1", keyMode, 'D');
                 }
             case KEYCODE_NUMPAD_5:
@@ -292,28 +286,24 @@ public final class KeyHandler {
                 if (numLockOn) {
                     return keypadApplication ? transformForModifiers("\033O", keyMode, 'v') : "6";
                 } else {
-
                     return (keyMode == 0) ? (cursorApp ? "\033OC" : "\033[C") : transformForModifiers("\033[1", keyMode, 'C');
                 }
             case KEYCODE_NUMPAD_7:
                 if (numLockOn) {
                     return keypadApplication ? transformForModifiers("\033O", keyMode, 'w') : "7";
                 } else {
-
                     return (keyMode == 0) ? (cursorApp ? "\033OH" : "\033[H") : transformForModifiers("\033[1", keyMode, 'H');
                 }
             case KEYCODE_NUMPAD_8:
                 if (numLockOn) {
                     return keypadApplication ? transformForModifiers("\033O", keyMode, 'x') : "8";
                 } else {
-
                     return (keyMode == 0) ? (cursorApp ? "\033OA" : "\033[A") : transformForModifiers("\033[1", keyMode, 'A');
                 }
             case KEYCODE_NUMPAD_9:
                 if (numLockOn) {
                     return keypadApplication ? transformForModifiers("\033O", keyMode, 'y') : "9";
                 } else {
-
                     return "\033[5~";
                 }
             case KEYCODE_NUMPAD_EQUALS:

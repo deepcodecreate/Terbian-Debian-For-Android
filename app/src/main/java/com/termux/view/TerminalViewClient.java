@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.view;
 
 import android.view.KeyEvent;
@@ -8,7 +10,6 @@ import android.view.View;
 import com.termux.terminal.TerminalSession;
 
 public interface TerminalViewClient {
-
     float onScale(float scale);
 
     void onSingleTapUp(MotionEvent e);
@@ -54,5 +55,4 @@ public interface TerminalViewClient {
     void logStackTraceWithMessage(String tag, String message, Exception e);
 
     void logStackTrace(String tag, Exception e);
-
 }

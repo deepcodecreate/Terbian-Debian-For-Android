@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include <dirent.h>
 #include <fcntl.h>
 #include <jni.h>
@@ -67,7 +69,6 @@ static int create_subprocess(JNIEnv* env,
         *pProcessId = (int) pid;
         return ptm;
     } else {
-
         sigset_t signals_to_unblock;
         sigfillset(&signals_to_unblock);
         sigprocmask(SIG_UNBLOCK, &signals_to_unblock, 0);
@@ -205,7 +206,6 @@ JNIEXPORT jint JNICALL Java_com_termux_terminal_JNI_waitFor(JNIEnv* TERMUX_UNUSE
     } else if (WIFSIGNALED(status)) {
         return -WTERMSIG(status);
     } else {
-
         return 0;
     }
 }

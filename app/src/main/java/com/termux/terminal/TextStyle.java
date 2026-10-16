@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 public final class TextStyle {
-
     public final static int CHARACTER_ATTRIBUTE_BOLD = 1;
     public final static int CHARACTER_ATTRIBUTE_ITALIC = 1 << 1;
     public final static int CHARACTER_ATTRIBUTE_UNDERLINE = 1 << 2;
@@ -29,17 +30,13 @@ public final class TextStyle {
     static long encode(int foreColor, int backColor, int effect) {
         long result = effect & 0b111111111;
         if ((0xff000000 & foreColor) == 0xff000000) {
-
             result |= CHARACTER_ATTRIBUTE_TRUECOLOR_FOREGROUND | ((foreColor & 0x00ffffffL) << 40L);
         } else {
-
             result |= (foreColor & 0b111111111L) << 40;
         }
         if ((0xff000000 & backColor) == 0xff000000) {
-
             result |= CHARACTER_ATTRIBUTE_TRUECOLOR_BACKGROUND | ((backColor & 0x00ffffffL) << 16L);
         } else {
-
             result |= (backColor & 0b111111111L) << 16L;
         }
 
@@ -52,7 +49,6 @@ public final class TextStyle {
         } else {
             return 0xff000000 | (int) ((style >>> 40) & 0x00ffffffL);
         }
-
     }
 
     public static int decodeBackColor(long style) {
@@ -66,5 +62,4 @@ public final class TextStyle {
     public static int decodeEffect(long style) {
         return (int) (style & 0b11111111111);
     }
-
 }

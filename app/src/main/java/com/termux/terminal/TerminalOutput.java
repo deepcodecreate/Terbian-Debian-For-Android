@@ -1,9 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 import java.nio.charset.StandardCharsets;
 
 public abstract class TerminalOutput {
-
     public final void write(String data) {
         if (data == null) return;
         byte[] bytes = data.getBytes(StandardCharsets.UTF_8);
@@ -21,5 +22,4 @@ public abstract class TerminalOutput {
     public abstract void onBell();
 
     public abstract void onColorsChanged();
-
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.view.support;
 
 import android.util.Log;
@@ -6,7 +8,6 @@ import android.widget.PopupWindow;
 import java.lang.reflect.Method;
 
 public class PopupWindowCompatGingerbread {
-
   private static Method sSetWindowLayoutTypeMethod;
   private static boolean sSetWindowLayoutTypeMethodAttempted;
   private static Method sGetWindowLayoutTypeMethod;
@@ -19,7 +20,6 @@ public class PopupWindowCompatGingerbread {
             PopupWindow.class.getDeclaredMethod("setWindowLayoutType", int.class);
         sSetWindowLayoutTypeMethod.setAccessible(true);
       } catch (Exception e) {
-
       }
       sSetWindowLayoutTypeMethodAttempted = true;
     }
@@ -27,7 +27,6 @@ public class PopupWindowCompatGingerbread {
       try {
         sSetWindowLayoutTypeMethod.invoke(popupWindow, layoutType);
       } catch (Exception e) {
-
       }
     }
   }
@@ -38,7 +37,6 @@ public class PopupWindowCompatGingerbread {
         sGetWindowLayoutTypeMethod = PopupWindow.class.getDeclaredMethod("getWindowLayoutType");
         sGetWindowLayoutTypeMethod.setAccessible(true);
       } catch (Exception e) {
-
       }
       sGetWindowLayoutTypeMethodAttempted = true;
     }
@@ -46,7 +44,6 @@ public class PopupWindowCompatGingerbread {
       try {
         return (Integer) sGetWindowLayoutTypeMethod.invoke(popupWindow);
       } catch (Exception e) {
-
       }
     }
     return 0;

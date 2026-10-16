@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2026 deepcodecreate
+  SPDX-License-Identifier: Apache-2.0
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="match_parent"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="8dp"
-    android:paddingEnd="2dp">
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp">
 
     <TextView
         android:id="@+id/tabTitle"
@@ -13,18 +17,8 @@
         android:layout_height="wrap_content"
         android:ellipsize="end"
         android:fontFamily="monospace"
-        android:maxWidth="140dp"
+        android:maxWidth="160dp"
         android:singleLine="true"
         android:textColor="@color/fg"
         android:textSize="12sp" />
-
-    <ImageButton
-        android:id="@+id/tabClose"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/close_session"
-        android:padding="6dp"
-        android:src="@drawable/ic_close"
-        android:tint="@color/subtle" />
 </LinearLayout>

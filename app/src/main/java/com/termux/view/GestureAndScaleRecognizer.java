@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.view;
 
 import android.content.Context;
@@ -6,7 +8,6 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 
 final class GestureAndScaleRecognizer {
-
     public interface Listener {
         boolean onSingleTapUp(MotionEvent e);
 
@@ -96,7 +97,6 @@ final class GestureAndScaleRecognizer {
                 break;
             case MotionEvent.ACTION_UP:
                 if (!isAfterLongPress) {
-
                     mListener.onUp(event);
                 }
                 break;
@@ -106,5 +106,4 @@ final class GestureAndScaleRecognizer {
     public boolean isInProgress() {
         return mScaleDetector.isInProgress();
     }
-
 }

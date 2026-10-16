@@ -1,17 +1,40 @@
+/*
+ * Copyright 2026 deepcodecreate
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.terbian.ui;
 
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.PopupWindow;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,7 +69,6 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class MainActivity extends AppCompatActivity implements ExtraKeysView.Host {
-
     private LinearLayout headerBar;
     private TextView activeSessionTitle;
     private ImageButton newSessionButton;
@@ -92,6 +114,7 @@ public class MainActivity extends AppCompatActivity implements ExtraKeysView.Hos
 
         applyAppTheme();
         requestNotificationPermissionIfNeeded();
+        requestStorageAccessOnFirstLaunch();
         prepareDebianThenStartFirstSession();
     }
 
@@ -102,6 +125,42 @@ public class MainActivity extends AppCompatActivity implements ExtraKeysView.Hos
             ActivityCompat.requestPermissions(
                     this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1001);
         }
+    }
+
+    private boolean hasStorageAccess() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return Environment.isExternalStorageManager();
+        }
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestStorageAccess() {
+        if (hasStorageAccess()) {
+            Toast.makeText(this, R.string.storage_access_granted, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            try {
+                startActivity(intent);
+            } catch (Exception e) {
+                startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+            }
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1002);
+        }
+    }
+
+    private void requestStorageAccessOnFirstLaunch() {
+        if (hasStorageAccess() || AppSettings.prefs(this).getBoolean(AppSettings.KEY_STORAGE_ASKED, false)) {
+            return;
+        }
+        AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_STORAGE_ASKED, true).apply();
+        requestStorageAccess();
     }
 
     @Override
@@ -176,18 +235,101 @@ public class MainActivity extends AppCompatActivity implements ExtraKeysView.Hos
             return;
         }
         TextView title = view.findViewById(R.id.tabTitle);
-        View close = view.findViewById(R.id.tabClose);
         title.setText(entry.title);
         if (palette != null) {
             title.setTextColor(palette.foreground);
-            ThemeApplier.tintIcon((android.widget.ImageView) close, palette.subtle);
         }
-        close.setOnClickListener(v -> closeSessionCompletely(entry.id));
+        tab.view.setOnLongClickListener(v -> {
+            showTabMenu(v, entry.id);
+            return true;
+        });
+    }
+
+    private void showTabMenu(View anchor, String sessionId) {
+        ThemePalette p = palette != null ? palette : ThemePalette.from(AppSettings.currentTheme(this));
+        boolean hasOthers = pagerAdapter.getItemCount() > 1;
+
+        LinearLayout menu = new LinearLayout(this);
+        menu.setOrientation(LinearLayout.VERTICAL);
+        menu.setPadding(0, dp(8), 0, dp(8));
+        menu.setMinimumWidth(dp(168));
+        GradientDrawable menuBg = new GradientDrawable();
+        menuBg.setColor(p.surfaceHigh);
+        menuBg.setCornerRadius(dp(12));
+        menuBg.setStroke(dp(1), p.border);
+        menu.setBackground(menuBg);
+
+        PopupWindow[] holder = new PopupWindow[1];
+
+        menu.addView(buildMenuItem(p, getString(R.string.close_this), true, () -> {
+            holder[0].dismiss();
+            closeSessionCompletely(sessionId);
+        }));
+        menu.addView(buildMenuItem(p, getString(R.string.close_other), hasOthers, () -> {
+            holder[0].dismiss();
+            closeOtherSessions(sessionId);
+        }));
+        menu.addView(buildMenuItem(p, getString(R.string.close_all), true, () -> {
+            holder[0].dismiss();
+            closeAllSessions();
+        }));
+
+        PopupWindow popup = new PopupWindow(menu,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                true);
+        popup.setBackgroundDrawable(new ColorDrawable(0));
+        popup.setOutsideTouchable(true);
+        popup.setElevation(dp(8));
+        holder[0] = popup;
+        popup.showAsDropDown(anchor, 0, dp(-4));
+    }
+
+    private View buildMenuItem(ThemePalette p, String label, boolean enabled, Runnable onClick) {
+        TextView item = new TextView(this);
+        item.setText(label);
+        item.setTextSize(14);
+        item.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        item.setGravity(Gravity.CENTER_VERTICAL);
+        item.setMinHeight(dp(48));
+        item.setPadding(dp(16), 0, dp(16), 0);
+        item.setTextColor(enabled ? p.foreground : ThemePalette.withAlpha(p.foreground, 97));
+        item.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        if (enabled) {
+            item.setBackground(new RippleDrawable(
+                    ColorStateList.valueOf(ThemePalette.withAlpha(p.primary, 40)), null,
+                    new ColorDrawable(0xFFFFFFFF)));
+            item.setOnClickListener(v -> onClick.run());
+        } else {
+            item.setEnabled(false);
+        }
+        return item;
     }
 
     void closeSessionCompletely(String sessionId) {
         SessionRegistry.getInstance(this).stopAndRemove(sessionId);
         sessionsViewModel.closeSession(sessionId);
+    }
+
+    void closeOtherSessions(String keepId) {
+        List<SessionEntry> current = sessionsViewModel.getSessions().getValue();
+        if (current == null) return;
+        SessionRegistry registry = SessionRegistry.getInstance(this);
+        for (SessionEntry entry : new ArrayList<>(current)) {
+            if (!entry.id.equals(keepId)) registry.stopAndRemove(entry.id);
+        }
+        sessionsViewModel.closeOthers(keepId);
+    }
+
+    void closeAllSessions() {
+        List<SessionEntry> current = sessionsViewModel.getSessions().getValue();
+        if (current == null) return;
+        SessionRegistry registry = SessionRegistry.getInstance(this);
+        for (SessionEntry entry : new ArrayList<>(current)) {
+            registry.stopAndRemove(entry.id);
+        }
+        sessionsViewModel.closeAll();
     }
 
     private void updateActiveTitle(int position) {
@@ -206,7 +348,8 @@ public class MainActivity extends AppCompatActivity implements ExtraKeysView.Hos
         menu.getMenu().add(0, 2, 1, R.string.copy_screen);
         menu.getMenu().add(0, 3, 2, R.string.paste);
         menu.getMenu().add(0, 4, 3, R.string.close_session);
-        menu.getMenu().add(0, 5, 4, R.string.settings);
+        menu.getMenu().add(0, 6, 4, R.string.storage_access);
+        menu.getMenu().add(0, 5, 5, R.string.settings);
         menu.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == 1) {
@@ -230,6 +373,10 @@ public class MainActivity extends AppCompatActivity implements ExtraKeysView.Hos
             }
             if (id == 5) {
                 startActivity(new Intent(this, SettingsActivity.class));
+                return true;
+            }
+            if (id == 6) {
+                requestStorageAccess();
                 return true;
             }
             return false;

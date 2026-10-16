@@ -1,10 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.view;
 
-import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -30,9 +32,9 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewTreeObserver;
 import android.view.accessibility.AccessibilityManager;
+import android.view.animation.DecelerateInterpolator;
 import android.view.autofill.AutofillManager;
 import android.view.autofill.AutofillValue;
-import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
@@ -47,7 +49,6 @@ import com.termux.terminal.TerminalSession;
 import com.termux.view.textselection.TextSelectionCursorController;
 
 public class TerminalView extends View {
-
   private static boolean TERMINAL_VIEW_KEY_LOGGING_ENABLED = false;
 
   public TerminalSession mTermSession;
@@ -117,7 +118,6 @@ public class TerminalView extends View {
         new GestureAndScaleRecognizer(
             context,
             new GestureAndScaleRecognizer.Listener() {
-
               boolean scrolledWithFinger;
 
               @Override
@@ -128,7 +128,6 @@ public class TerminalView extends View {
                     && !event.isFromSource(InputDevice.SOURCE_MOUSE)
                     && !isSelectingText()
                     && !scrolledWithFinger) {
-
                   sendMouseEventCode(event, TerminalEmulator.MOUSE_LEFT_BUTTON, true);
                   sendMouseEventCode(event, TerminalEmulator.MOUSE_LEFT_BUTTON, false);
                   return true;
@@ -154,7 +153,6 @@ public class TerminalView extends View {
               public boolean onScroll(MotionEvent e, float distanceX, float distanceY) {
                 if (mEmulator == null) return true;
                 if (mEmulator.isMouseTrackingActive() && e.isFromSource(InputDevice.SOURCE_MOUSE)) {
-
                   sendMouseEventCode(e, TerminalEmulator.MOUSE_LEFT_BUTTON_MOVED, true);
                 } else {
                   scrolledWithFinger = true;
@@ -229,13 +227,11 @@ public class TerminalView extends View {
 
               @Override
               public boolean onDown(float x, float y) {
-
                 return false;
               }
 
               @Override
               public boolean onDoubleTap(MotionEvent event) {
-
                 return false;
               }
 
@@ -280,26 +276,21 @@ public class TerminalView extends View {
 
   @Override
   public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
-
     if (mClient.isTerminalViewSelected()) {
       if (mClient.shouldEnforceCharBasedInput()) {
-
         outAttrs.inputType =
             InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
                 | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
       } else {
-
         outAttrs.inputType = InputType.TYPE_NULL;
       }
     } else {
-
       outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_NORMAL;
     }
 
     outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN;
 
     return new BaseInputConnection(this, true) {
-
       @Override
       public boolean finishComposingText() {
         if (TERMINAL_VIEW_KEY_LOGGING_ENABLED)
@@ -348,7 +339,6 @@ public class TerminalView extends View {
             if (++i < textLengthInChars) {
               codePoint = Character.toCodePoint(firstChar, text.charAt(i));
             } else {
-
               codePoint = TerminalEmulator.UNICODE_REPLACEMENT_CHAR;
             }
           } else {
@@ -360,7 +350,6 @@ public class TerminalView extends View {
           boolean ctrlHeld = false;
           if (codePoint <= 31 && codePoint != 27) {
             if (codePoint == '\n') {
-
               codePoint = '\r';
             }
 
@@ -418,10 +407,8 @@ public class TerminalView extends View {
     if (mTopRow < -rowsInHistory) mTopRow = -rowsInHistory;
 
     if (isSelectingText() || mEmulator.isAutoScrollDisabled()) {
-
       int rowShift = mEmulator.getScrollCounter();
       if (-mTopRow + rowShift > rowsInHistory) {
-
         if (isSelectingText()) stopTextSelectionMode();
 
         if (mEmulator.isAutoScrollDisabled()) {
@@ -436,9 +423,7 @@ public class TerminalView extends View {
     }
 
     if (!skipScrolling && mTopRow != 0) {
-
       if (mTopRow < -3) {
-
         awakenScrollBars();
       }
       mTopRow = 0;
@@ -451,7 +436,6 @@ public class TerminalView extends View {
   }
 
   public void onContextMenuClosed(Menu menu) {
-
     unsetStoredSelectedText();
   }
 
@@ -519,7 +503,6 @@ public class TerminalView extends View {
             up ? TerminalEmulator.MOUSE_WHEELUP_BUTTON : TerminalEmulator.MOUSE_WHEELDOWN_BUTTON,
             true);
       } else if (mEmulator.isAlternateBufferActive()) {
-
         handleKeyCode(up ? KeyEvent.KEYCODE_DPAD_UP : KeyEvent.KEYCODE_DPAD_DOWN, 0);
       } else {
         mTopRow =
@@ -537,7 +520,6 @@ public class TerminalView extends View {
     if (mEmulator != null
         && event.isFromSource(InputDevice.SOURCE_MOUSE)
         && event.getAction() == MotionEvent.ACTION_SCROLL) {
-
       boolean up = event.getAxisValue(MotionEvent.AXIS_VSCROLL) > 0.0f;
       doScroll(event, up ? -3 : 3);
       return true;
@@ -601,7 +583,6 @@ public class TerminalView extends View {
         stopTextSelectionMode();
         return true;
       } else if (mClient.shouldBackButtonBeMappedToEscape()) {
-
         switch (event.getAction()) {
           case KeyEvent.ACTION_DOWN:
             return onKeyDown(keyCode, event);
@@ -612,7 +593,6 @@ public class TerminalView extends View {
     } else if (mClient.shouldUseCtrlSpaceWorkaround()
         && keyCode == KeyEvent.KEYCODE_SPACE
         && event.isCtrlPressed()) {
-
       return onKeyDown(keyCode, event);
     }
     return super.onKeyPreIme(keyCode, event);
@@ -670,9 +650,7 @@ public class TerminalView extends View {
 
     int bitsToClear = KeyEvent.META_CTRL_MASK;
     if (rightAltDownFromEvent) {
-
     } else {
-
       bitsToClear |= KeyEvent.META_ALT_ON | KeyEvent.META_ALT_LEFT_ON;
     }
     int effectiveMetaState = event.getMetaState() & ~bitsToClear;
@@ -690,7 +668,6 @@ public class TerminalView extends View {
 
     int oldCombiningAccent = mCombiningAccent;
     if ((result & KeyCharacterMap.COMBINING_ACCENT) != 0) {
-
       if (mCombiningAccent != 0)
         inputCodePoint(event.getDeviceId(), mCombiningAccent, controlDown, leftAltDown);
       mCombiningAccent = result & KeyCharacterMap.COMBINING_ACCENT_MASK;
@@ -749,7 +726,6 @@ public class TerminalView extends View {
       } else if (codePoint == '^' || codePoint == '6') {
         codePoint = 30;
       } else if (codePoint == '_' || codePoint == '7' || codePoint == '/') {
-
         codePoint = 31;
       } else if (codePoint == '8') {
         codePoint = 127;
@@ -757,9 +733,7 @@ public class TerminalView extends View {
     }
 
     if (codePoint > -1) {
-
       if (eventSource > KEY_EVENT_SOURCE_SOFT_KEYBOARD) {
-
         switch (codePoint) {
           case 0x02DC:
             codePoint = 0x007E;
@@ -778,7 +752,6 @@ public class TerminalView extends View {
   }
 
   public boolean handleKeyCode(int keyCode, int keyMod) {
-
     if (mEmulator != null) mEmulator.setCursorBlinkState(true);
 
     if (handleKeyCodeAction(keyCode, keyMod)) return true;
@@ -825,7 +798,6 @@ public class TerminalView extends View {
       invalidate();
       return true;
     } else if (event.isSystem()) {
-
       return super.onKeyUp(keyCode, event);
     }
 
@@ -1002,7 +974,6 @@ public class TerminalView extends View {
 
   @RequiresApi(api = Build.VERSION_CODES.O)
   private synchronized void resetAutoFill() {
-
     mAutoFillType = AUTOFILL_TYPE_NONE;
     mAutoFillImportance = IMPORTANT_FOR_AUTOFILL_NO;
     mAutoFillHints = new String[0];
@@ -1054,7 +1025,6 @@ public class TerminalView extends View {
     try {
       AutofillManager autofillManager = getAutoFillManagerService();
       if (autofillManager != null && autofillManager.isEnabled()) {
-
         mAutoFillType = AUTOFILL_TYPE_TEXT;
 
         mAutoFillImportance = IMPORTANT_FOR_AUTOFILL_YES;
@@ -1114,7 +1084,6 @@ public class TerminalView extends View {
 
   public synchronized void setTerminalCursorBlinkerState(
       boolean start, boolean startOnlyIfCursorEnabled) {
-
     stopTerminalCursorBlinker();
 
     if (mEmulator == null) return;
@@ -1122,7 +1091,6 @@ public class TerminalView extends View {
     mEmulator.setCursorBlinkingEnabled(false);
 
     if (start) {
-
       if (mTerminalCursorBlinkerRate < TERMINAL_CURSOR_BLINK_RATE_MIN
           || mTerminalCursorBlinkerRate > TERMINAL_CURSOR_BLINK_RATE_MAX) return;
 
@@ -1156,7 +1124,6 @@ public class TerminalView extends View {
   }
 
   private class TerminalCursorBlinkerRunnable implements Runnable {
-
     private TerminalEmulator mEmulator;
     private final int mBlinkRate;
 
@@ -1172,7 +1139,6 @@ public class TerminalView extends View {
     public void run() {
       try {
         if (mEmulator != null) {
-
           mEmulator.setCursorBlinkState(true);
 
           if (mCursorBlinkAnimator == null) {
@@ -1201,7 +1167,6 @@ public class TerminalView extends View {
           if (!mCursorBlinkAnimator.isRunning()) mCursorBlinkAnimator.start();
         }
       } finally {
-
         mTerminalCursorBlinkerHandler.postDelayed(this, mBlinkRate);
       }
     }
@@ -1304,7 +1269,6 @@ public class TerminalView extends View {
     super.onDetachedFromWindow();
 
     if (mTextSelectionCursorController != null) {
-
       stopTextSelectionMode();
 
       getViewTreeObserver().removeOnTouchModeChangeListener(mTextSelectionCursorController);

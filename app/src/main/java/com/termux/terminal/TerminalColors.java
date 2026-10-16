@@ -1,9 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 import android.graphics.Color;
 
 public final class TerminalColors {
-
     public static final TerminalColorScheme COLOR_SCHEME = new TerminalColorScheme();
 
     public final int[] mCurrentColors = new int[TextStyle.NUM_INDEXED_COLORS];
@@ -24,11 +25,9 @@ public final class TerminalColors {
         try {
             int skipInitial, skipBetween;
             if (c.charAt(0) == '#') {
-
                 skipInitial = 1;
                 skipBetween = 0;
             } else if (c.startsWith("rgb:")) {
-
                 skipInitial = 4;
                 skipBetween = 1;
             } else {
@@ -68,5 +67,4 @@ public final class TerminalColors {
                     Math.pow(Color.blue(color), 2) * 0.068
             ));
     }
-
 }

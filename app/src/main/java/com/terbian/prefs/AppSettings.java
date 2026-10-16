@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 deepcodecreate
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.terbian.prefs;
 
 import android.content.Context;
@@ -7,7 +23,6 @@ import com.terbian.terminal.view.CursorStyle;
 import com.terbian.terminal.view.TerminalTheme;
 
 public final class AppSettings {
-
     public static final String PREFS = "terbian_settings";
 
     public static final String KEY_THEME = "terminal_theme";
@@ -16,6 +31,7 @@ public final class AppSettings {
     public static final String KEY_CURSOR_STYLE = "cursor_style";
     public static final String KEY_EXTRA_KEYS = "extra_keys";
     public static final String KEY_BELL = "visual_bell";
+    public static final String KEY_STORAGE_ASKED = "storage_asked";
 
     private AppSettings() {
     }
@@ -25,7 +41,7 @@ public final class AppSettings {
     }
 
     public static String themeId(Context context) {
-        return prefs(context).getString(KEY_THEME, TerminalTheme.ID_BURNT);
+        return prefs(context).getString(KEY_THEME, TerminalTheme.ID_BLACK);
     }
 
     public static float fontSizeSp(Context context) {

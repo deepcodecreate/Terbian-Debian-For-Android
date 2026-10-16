@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.view.textselection;
 
 import android.annotation.SuppressLint;
@@ -242,7 +244,6 @@ public class TextSelectionHandleView extends View {
   }
 
   private boolean isPositionVisible() {
-
     if (mIsDragging) {
       return true;
     }

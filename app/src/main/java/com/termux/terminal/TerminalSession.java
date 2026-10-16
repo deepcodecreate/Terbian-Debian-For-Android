@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 import android.annotation.SuppressLint;
@@ -18,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 public final class TerminalSession extends TerminalOutput {
-
     private static final int MSG_NEW_INPUT = 1;
     private static final int MSG_PROCESS_EXITED = 4;
 
@@ -103,7 +104,6 @@ public final class TerminalSession extends TerminalOutput {
                         mMainThreadHandler.sendEmptyMessage(MSG_NEW_INPUT);
                     }
                 } catch (Exception e) {
-
                 }
             }
         }.start();
@@ -119,7 +119,6 @@ public final class TerminalSession extends TerminalOutput {
                         termOut.write(buffer, 0, bytesToWrite);
                     }
                 } catch (IOException e) {
-
                 }
             }
         }.start();
@@ -131,7 +130,6 @@ public final class TerminalSession extends TerminalOutput {
                 mMainThreadHandler.sendMessage(mMainThreadHandler.obtainMessage(MSG_PROCESS_EXITED, processExitCode));
             }
         }.start();
-
     }
 
     @Override
@@ -141,7 +139,6 @@ public final class TerminalSession extends TerminalOutput {
 
     public void writeCodePoint(boolean prependEscape, int codePoint) {
         if (codePoint > 1114111 || (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
-
             throw new IllegalArgumentException("Invalid code point: " + codePoint);
         }
 
@@ -151,19 +148,16 @@ public final class TerminalSession extends TerminalOutput {
         if (codePoint <= 0b1111111) {
             mUtf8InputBuffer[bufferPosition++] = (byte) codePoint;
         } else if (codePoint <= 0b11111111111) {
-
             mUtf8InputBuffer[bufferPosition++] = (byte) (0b11000000 | (codePoint >> 6));
 
             mUtf8InputBuffer[bufferPosition++] = (byte) (0b10000000 | (codePoint & 0b111111));
         } else if (codePoint <= 0b1111111111111111) {
-
             mUtf8InputBuffer[bufferPosition++] = (byte) (0b11100000 | (codePoint >> 12));
 
             mUtf8InputBuffer[bufferPosition++] = (byte) (0b10000000 | ((codePoint >> 6) & 0b111111));
 
             mUtf8InputBuffer[bufferPosition++] = (byte) (0b10000000 | (codePoint & 0b111111));
         } else {
-
             mUtf8InputBuffer[bufferPosition++] = (byte) (0b11110000 | (codePoint >> 18));
 
             mUtf8InputBuffer[bufferPosition++] = (byte) (0b10000000 | ((codePoint >> 12) & 0b111111));
@@ -273,7 +267,6 @@ public final class TerminalSession extends TerminalOutput {
             try {
                 descriptorField = FileDescriptor.class.getDeclaredField("descriptor");
             } catch (NoSuchFieldException e) {
-
                 descriptorField = FileDescriptor.class.getDeclaredField("fd");
             }
             descriptorField.setAccessible(true);
@@ -287,7 +280,6 @@ public final class TerminalSession extends TerminalOutput {
 
     @SuppressLint("HandlerLeak")
     class MainThreadHandler extends Handler {
-
         final byte[] mReceiveBuffer = new byte[64 * 1024];
 
         @Override
@@ -304,10 +296,8 @@ public final class TerminalSession extends TerminalOutput {
 
                 String exitDescription = "\r\n[Process completed";
                 if (exitCode > 0) {
-
                     exitDescription += " (code " + exitCode + ")";
                 } else if (exitCode < 0) {
-
                     exitDescription += " (signal " + (-exitCode) + ")";
                 }
                 exitDescription += " - press Enter]";
@@ -319,7 +309,5 @@ public final class TerminalSession extends TerminalOutput {
                 mClient.onSessionFinished(TerminalSession.this);
             }
         }
-
     }
-
 }

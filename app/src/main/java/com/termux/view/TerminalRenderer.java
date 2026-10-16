@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.view;
 
 import android.graphics.Canvas;
@@ -12,7 +14,6 @@ import com.termux.terminal.TextStyle;
 import com.termux.terminal.WcWidth;
 
 public final class TerminalRenderer {
-
   final int mTextSize;
   final Typeface mTypeface;
   private final Paint mTextPaint = new Paint();
@@ -221,7 +222,6 @@ public final class TerminalRenderer {
       boolean fontWidthMismatch,
       int cursorShape,
       boolean reverseVideo) {
-
     final int runColumns = endCol - startCol;
 
     final int cursorColor;
@@ -380,7 +380,6 @@ public final class TerminalRenderer {
     final boolean dim = (effect & TextStyle.CHARACTER_ATTRIBUTE_DIM) != 0;
 
     if ((foreColor & 0xff000000) != 0xff000000) {
-
       if (bold && foreColor >= 0 && foreColor < 8) foreColor += 8;
       foreColor = palette[foreColor];
     }
@@ -430,7 +429,6 @@ public final class TerminalRenderer {
 
     if ((effect & TextStyle.CHARACTER_ATTRIBUTE_INVISIBLE) == 0) {
       if (dim) {
-
         int red = (0xFF & (foreColor >> 16)) * 2 / 3;
         int green = (0xFF & (foreColor >> 8)) * 2 / 3;
         int blue = (0xFF & foreColor) * 2 / 3;
@@ -468,7 +466,6 @@ public final class TerminalRenderer {
       int cursorShape,
       int cursorColor,
       boolean reverseVideo) {
-
     int selStart = -1;
     for (int v = startCol; v <= endCol; v++) {
       boolean selected = v < endCol && visualCells[v].insideSelection;
@@ -502,7 +499,6 @@ public final class TerminalRenderer {
           mTextPaint);
 
       if (cursorShape == TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK && rc.codePoint != 0) {
-
         int backColor = TextStyle.decodeBackColor(rc.style);
         if ((backColor & 0xff000000) != 0xff000000) backColor = palette[backColor];
         if (reverseVideo) backColor = applyCursorAlpha(cursorColor);

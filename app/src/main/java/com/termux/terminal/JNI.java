@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 final class JNI {
-
     static {
         System.loadLibrary("termux");
     }
@@ -13,5 +14,4 @@ final class JNI {
     public static native int waitFor(int processId);
 
     public static native void close(int fileDescriptor);
-
 }

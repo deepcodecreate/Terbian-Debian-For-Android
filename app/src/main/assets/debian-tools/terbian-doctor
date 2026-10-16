@@ -1,0 +1,9 @@
+#!/bin/bash
+# Copyright 2026 deepcodecreate
+# SPDX-License-Identifier: Apache-2.0
+echo "== uname =="; uname -a
+echo "== perl binaries =="; ls -la /usr/bin/perl* 2>&1
+echo "== stat perl =="; stat /usr/bin/perl 2>&1
+echo "== l2s leftovers (proot link2symlink) =="; find / -xdev -name '.l2s.*' 2>/dev/null | head -20
+echo "== dpkg =="; dpkg --version | head -1; dpkg --audit 2>&1 | head
+echo "== mounts of /tmp, /proc =="; ls -ld /tmp /proc/self 2>&1

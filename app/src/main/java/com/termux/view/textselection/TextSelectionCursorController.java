@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.view.textselection;
 
 import android.content.ClipboardManager;
@@ -13,13 +15,12 @@ import android.view.View;
 
 import androidx.annotation.Nullable;
 
+import com.terbian.R;
 import com.termux.terminal.TerminalBuffer;
 import com.termux.terminal.WcWidth;
-import com.terbian.R;
 import com.termux.view.TerminalView;
 
 public class TextSelectionCursorController implements CursorController {
-
   private final TerminalView terminalView;
   private final TextSelectionHandleView mStartHandle, mEndHandle;
   private String mStoredSelectedText;
@@ -65,7 +66,6 @@ public class TextSelectionCursorController implements CursorController {
     mEndHandle.hide();
 
     if (mActionMode != null) {
-
       mActionMode.finish();
     }
 
@@ -94,7 +94,6 @@ public class TextSelectionCursorController implements CursorController {
 
     TerminalBuffer screen = terminalView.mEmulator.getScreen();
     if (!" ".equals(screen.getSelectedText(mSelX1, mSelY1, mSelX1, mSelY1))) {
-
       while (mSelX1 > 0
           && !"".equals(screen.getSelectedText(mSelX1 - 1, mSelY1, mSelX1 - 1, mSelY1))) {
         mSelX1--;
@@ -132,7 +131,6 @@ public class TextSelectionCursorController implements CursorController {
           @Override
           public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
             if (!isActive()) {
-
               return true;
             }
 
@@ -187,7 +185,6 @@ public class TextSelectionCursorController implements CursorController {
 
               @Override
               public void onDestroyActionMode(ActionMode mode) {
-
               }
 
               @Override
@@ -281,7 +278,6 @@ public class TextSelectionCursorController implements CursorController {
       }
 
       mSelX1 = getValidCurX(screen, mSelY1, mSelX1);
-
     } else {
       mSelY2 = terminalView.getCursorY(y);
       if (mSelY2 < -scrollRows) {

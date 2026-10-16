@@ -1,9 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 import java.util.Arrays;
 
 public final class TerminalBuffer {
-
     TerminalRow[] mLines;
 
     int mTotalRows;
@@ -113,7 +114,6 @@ public final class TerminalBuffer {
     }
 
     public String getWordAtLocation(int x, int y) {
-
         int y1 = y;
         int y2 = y;
         while (y1 > 0 && !getSelectedText(0, y1 - 1, mColumns, y, true, true).contains("\n")) {
@@ -128,7 +128,6 @@ public final class TerminalBuffer {
         int textOffset = (y - y1) * mColumns + x;
 
         if (textOffset >= text.length()) {
-
           return "";
         }
 
@@ -139,7 +138,6 @@ public final class TerminalBuffer {
         }
 
         if (x1 == x2) {
-
           return "";
         }
         return text.substring(x1 + 1, x2);
@@ -173,12 +171,9 @@ public final class TerminalBuffer {
     }
 
     public void resize(int newColumns, int newRows, int newTotalRows, int[] cursor, long currentStyle, boolean altScreen) {
-
         if (newColumns == mColumns && newRows <= mTotalRows) {
-
             int shiftDownOfTopRow = mScreenRows - newRows;
             if (shiftDownOfTopRow > 0 && shiftDownOfTopRow < mScreenRows) {
-
                 for (int i = mScreenRows - 1; i > 0; i--) {
                     if (cursor[1] >= i) break;
                     int r = externalToInternalRow(i);
@@ -187,10 +182,8 @@ public final class TerminalBuffer {
                     }
                 }
             } else if (shiftDownOfTopRow < 0) {
-
                 int actualShift = Math.max(shiftDownOfTopRow, -mActiveTranscriptRows);
                 if (shiftDownOfTopRow != actualShift) {
-
                     for (int i = 0; i < actualShift - shiftDownOfTopRow; i++)
                         allocateFullLineIfNecessary((mScreenFirstRow + mScreenRows + i) % mTotalRows).clear(currentStyle);
                     shiftDownOfTopRow = actualShift;
@@ -203,7 +196,6 @@ public final class TerminalBuffer {
             cursor[1] -= shiftDownOfTopRow;
             mScreenRows = newRows;
         } else {
-
             TerminalRow[] oldLines = mLines;
             mLines = new TerminalRow[newTotalRows];
             for (int i = 0; i < newTotalRows; i++)
@@ -229,7 +221,6 @@ public final class TerminalBuffer {
 
             int skippedBlankLines = 0;
             for (int externalOldRow = -oldActiveTranscriptRows; externalOldRow < oldScreenRows; externalOldRow++) {
-
                 int internalOldRow = oldScreenFirstRow + externalOldRow;
                 internalOldRow = (internalOldRow < 0) ? (oldTotalRows + internalOldRow) : (internalOldRow % oldTotalRows);
 
@@ -240,7 +231,6 @@ public final class TerminalBuffer {
                     skippedBlankLines++;
                     continue;
                 } else if (skippedBlankLines > 0) {
-
                     for (int i = 0; i < skippedBlankLines; i++) {
                         if (currentOutputExternalRow == mScreenRows - 1) {
                             scrollDownOneLine(0, mScreenRows, currentStyle);
@@ -255,7 +245,6 @@ public final class TerminalBuffer {
                 int lastNonSpaceIndex = 0;
                 boolean justToCursor = false;
                 if (cursorAtThisRow || oldLine.mLineWrap) {
-
                     lastNonSpaceIndex = oldLine.getSpaceUsed();
                     if (cursorAtThisRow) justToCursor = true;
                 } else {
@@ -268,7 +257,6 @@ public final class TerminalBuffer {
                 int currentOldCol = 0;
                 long styleAtCol = 0;
                 for (int i = 0; i < lastNonSpaceIndex; i++) {
-
                     char c = oldLine.mText[i];
                     int codePoint = (Character.isHighSurrogate(c)) ? Character.toCodePoint(c, oldLine.mText[++i]) : c;
                     int displayWidth = WcWidth.width(codePoint);
@@ -403,7 +391,6 @@ public final class TerminalBuffer {
                 int backColor = TextStyle.decodeBackColor(currentStyle);
                 int effect = TextStyle.decodeEffect(currentStyle);
                 if (reverse) {
-
                     effect = (effect & ~bits) | (bits & ~effect);
                 } else if (setOrClear) {
                     effect |= bits;
@@ -424,5 +411,4 @@ public final class TerminalBuffer {
         }
         mActiveTranscriptRows = 0;
     }
-
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 import android.util.Base64;
@@ -9,7 +11,6 @@ import java.util.Objects;
 import java.util.Stack;
 
 public final class TerminalEmulator {
-
     private static final boolean LOG_ESCAPE_SEQUENCES = false;
 
     public static final int MOUSE_LEFT_BUTTON = 0;
@@ -178,7 +179,6 @@ public final class TerminalEmulator {
 
     private void setDecsetinternalBit(int internalBit, boolean set) {
         if (set) {
-
             if (internalBit == DECSET_BIT_MOUSE_TRACKING_PRESS_RELEASE) {
                 setDecsetinternalBit(DECSET_BIT_MOUSE_TRACKING_BUTTON_EVENT, false);
             } else if (internalBit == DECSET_BIT_MOUSE_TRACKING_BUTTON_EVENT) {
@@ -220,7 +220,6 @@ public final class TerminalEmulator {
                 return DECSET_BIT_BRACKETED_PASTE_MODE;
             default:
                 return -1;
-
         }
     }
 
@@ -265,7 +264,6 @@ public final class TerminalEmulator {
         if (row > mRows) row = mRows;
 
         if (mouseButton == MOUSE_LEFT_BUTTON_MOVED && !isDecsetInternalBitSet(DECSET_BIT_MOUSE_TRACKING_BUTTON_EVENT)) {
-
         } else if (isDecsetInternalBitSet(DECSET_BIT_MOUSE_PROTOCOL_SGR)) {
             mSession.write(String.format("\033[<%d;%d;%d" + (pressed ? 'M' : 'm'), mouseButton, column, row));
         } else {
@@ -388,7 +386,6 @@ public final class TerminalEmulator {
     private void processByte(byte byteToProcess) {
         if (mUtf8ToFollow > 0) {
             if ((byteToProcess & 0b11000000) == 0b10000000) {
-
                 mUtf8InputBuffer[mUtf8Index++] = byteToProcess;
                 if (--mUtf8ToFollow == 0) {
                     byte firstByteMask = (byte) (mUtf8Index == 2 ? 0b00011111 : (mUtf8Index == 3 ? 0b00001111 : 0b00000111));
@@ -397,14 +394,12 @@ public final class TerminalEmulator {
                         codePoint = ((codePoint << 6) | (mUtf8InputBuffer[i] & 0b00111111));
                     if (((codePoint <= 0b1111111) && mUtf8Index > 1) || (codePoint < 0b11111111111 && mUtf8Index > 2)
                         || (codePoint < 0b1111111111111111 && mUtf8Index > 3)) {
-
                         codePoint = UNICODE_REPLACEMENT_CHAR;
                     }
 
                     mUtf8Index = mUtf8ToFollow = 0;
 
                     if (codePoint >= 0x80 && codePoint <= 0x9F) {
-
                     } else {
                         switch (Character.getType(codePoint)) {
                             case Character.UNASSIGNED:
@@ -415,7 +410,6 @@ public final class TerminalEmulator {
                     }
                 }
             } else {
-
                 mUtf8Index = mUtf8ToFollow = 0;
                 emitCodePoint(UNICODE_REPLACEMENT_CHAR);
 
@@ -432,7 +426,6 @@ public final class TerminalEmulator {
             } else if ((byteToProcess & 0b11111000) == 0b11110000) {
                 mUtf8ToFollow = 3;
             } else {
-
                 processCodePoint(UNICODE_REPLACEMENT_CHAR);
                 return;
             }
@@ -441,7 +434,6 @@ public final class TerminalEmulator {
     }
 
     public void processCodePoint(int b) {
-
         if (mEscapeState == ESC_APC) {
             doApc(b);
             return;
@@ -461,7 +453,6 @@ public final class TerminalEmulator {
                 break;
             case 8:
                 if (mLeftMargin == mCursorCol) {
-
                     int previousRow = mCursorRow - 1;
                     if (previousRow >= 0 && mScreen.getLineWrap(previousRow)) {
                         mScreen.clearLineWrap(previousRow);
@@ -492,7 +483,6 @@ public final class TerminalEmulator {
             case 24:
             case 26:
                 if (mEscapeState != ESC_NONE) {
-
                     mEscapeState = ESC_NONE;
                     emitCodePoint(127);
                 }
@@ -500,7 +490,6 @@ public final class TerminalEmulator {
             case 27:
 
                 if (mEscapeState == ESC_P) {
-
                     return;
                 } else if (mEscapeState != ESC_OSC) {
                     startEscapeSequence();
@@ -582,7 +571,6 @@ public final class TerminalEmulator {
                                 int fillChar = erase ? ' ' : getArg(argIndex++, -1, true);
 
                                 if ((fillChar >= 32 && fillChar <= 126) || (fillChar >= 160 && fillChar <= 255)) {
-
                                     int top = Math.min(getArg(argIndex++, 1, true) + effectiveTopMargin, effectiveBottomMargin + 1);
                                     int left = Math.min(getArg(argIndex++, 1, true) + effectiveLeftMargin, effectiveRightMargin + 1);
                                     int bottom = Math.min(getArg(argIndex++, mRows, true) + effectiveTopMargin, effectiveBottomMargin);
@@ -645,14 +633,12 @@ public final class TerminalEmulator {
                                                 break;
                                         }
                                         if (reverse && !setOrClear) {
-
                                         } else {
                                             mScreen.setOrClearEffect(bits, setOrClear, reverse, isDecsetInternalBitSet(DECSET_BIT_RECTANGULAR_CHANGEATTRIBUTE),
                                                 effectiveLeftMargin, effectiveRightMargin, top, left, bottom, right);
                                         }
                                     }
                                 } else {
-
                                 }
                                 break;
                             default:
@@ -661,13 +647,10 @@ public final class TerminalEmulator {
                         break;
                     case ESC_CSI_DOUBLE_QUOTE:
                         if (b == 'q') {
-
                             int arg = getArg0(0);
                             if (arg == 0 || arg == 2) {
-
                                 mEffect &= ~TextStyle.CHARACTER_ATTRIBUTE_PROTECTED;
                             } else if (arg == 1) {
-
                                 mEffect |= TextStyle.CHARACTER_ATTRIBUTE_PROTECTED;
                             } else {
                                 unknownSequence(b);
@@ -705,11 +688,9 @@ public final class TerminalEmulator {
                         break;
                     case ESC_CSI_QUESTIONMARK_ARG_DOLLAR:
                         if (b == 'p') {
-
                             int mode = getArg0(0);
                             int value;
                             if (mode == 47 || mode == 1047 || mode == 1049) {
-
                                 value = (mScreen == mAltBuffer) ? 1 : 2;
                             } else {
                                 int internalBit = mapDecSetBitToInternalBit(mode);
@@ -756,7 +737,6 @@ public final class TerminalEmulator {
                     case ESC_CSI_ARGS_ASTERIX:
                         int attributeChangeExtent = getArg0(0);
                         if (b == 'x' && (attributeChangeExtent >= 0 && attributeChangeExtent <= 2)) {
-
                             setDecsetinternalBit(DECSET_BIT_RECTANGULAR_CHANGEATTRIBUTE, attributeChangeExtent == 2);
                         } else {
                             unknownSequence(b);
@@ -779,14 +759,12 @@ public final class TerminalEmulator {
 
                 if (dcs.startsWith("$q")) {
                     if (dcs.equals("$q\"p")) {
-
                         String csiString = "64;1\"p";
                         mSession.write("\033P1$r" + csiString + "\033\\");
                     } else {
                         finishSequenceAndLogError("Unrecognized DECRQSS string: '" + dcs + "'");
                     }
                 } else if (dcs.startsWith("+q")) {
-
                     for (String part : dcs.substring(2).split(";")) {
                         if (part.length() % 2 == 0) {
                             StringBuilder transBuffer = new StringBuilder();
@@ -847,7 +825,6 @@ public final class TerminalEmulator {
             break;
             default:
                 if (mOSCOrDeviceControlArgs.length() > MAX_OSC_STRING_LENGTH) {
-
                     mOSCOrDeviceControlArgs.setLength(0);
                     finishSequence();
                 } else {
@@ -861,15 +838,12 @@ public final class TerminalEmulator {
         if (b == 27) {
             continueSequence(ESC_APC_ESCAPE);
         }
-
     }
 
     private void doApcEscape(int b) {
         if (b == '\\') {
-
             finishSequence();
         } else {
-
             continueSequence(ESC_APC);
         }
     }
@@ -882,13 +856,10 @@ public final class TerminalEmulator {
 
     private void doCsiUnsupportedParameterOrIntermediateByte(int b) {
         if (mEscapeState == ESC_CSI_UNSUPPORTED_PARAMETER_BYTE && b >= 0x30 && b <= 0x3F) {
-
             continueSequence(ESC_CSI_UNSUPPORTED_PARAMETER_BYTE);
         } else if (b >= 0x20 && b <= 0x2F) {
-
             continueSequence(ESC_CSI_UNSUPPORTED_INTERMEDIATE_BYTE);
         } else if (b >= 0x40 && b <= 0x7E) {
-
             finishSequence();
         } else {
             unknownSequence(b);
@@ -1042,7 +1013,6 @@ public final class TerminalEmulator {
             case 47:
             case 1047:
             case 1049: {
-
                 TerminalBuffer newScreen = setting ? mAltBuffer : mMainBuffer;
                 if (newScreen != mScreen) {
                     boolean resized = !(newScreen.mColumns == mColumns && newScreen.mScreenRows == mRows);
@@ -1053,7 +1023,6 @@ public final class TerminalEmulator {
                         int row = mSavedStateMain.mSavedCursorRow;
                         restoreCursor();
                         if (resized) {
-
                             mCursorCol = col;
                             mCursorRow = row;
                         }
@@ -1102,7 +1071,6 @@ public final class TerminalEmulator {
         boolean belowScrollingRegion = mCursorRow >= mBottomMargin;
         int newCursorRow = mCursorRow + 1;
         if (belowScrollingRegion) {
-
             if (mCursorRow != mRows - 1) {
                 setCursorRow(newCursorRow);
             }
@@ -1267,7 +1235,6 @@ public final class TerminalEmulator {
                 continueSequence(ESC_CSI_ARGS_ASTERIX);
                 break;
             case '@': {
-
                 mAboutToAutoWrap = false;
                 int columnsAfterCursor = mColumns - mCursorCol;
                 int spacesToInsert = Math.min(getArg0(1), columnsAfterCursor);
@@ -1367,7 +1334,6 @@ public final class TerminalEmulator {
             break;
             case 'P':
             {
-
                 mAboutToAutoWrap = false;
                 int cellsAfterCursor = mColumns - mCursorCol;
                 int cellsToDelete = Math.min(getArg0(1), cellsAfterCursor);
@@ -1384,14 +1350,12 @@ public final class TerminalEmulator {
             }
             case 'T':
                 if (mArgIndex == 0) {
-
                     final int linesToScrollArg = getArg0(1);
                     final int linesBetweenTopAndBottomMargins = mBottomMargin - mTopMargin;
                     final int linesToScroll = Math.min(linesBetweenTopAndBottomMargins, linesToScrollArg);
                     mScreen.blockCopy(mLeftMargin, mTopMargin, mRightMargin - mLeftMargin, linesBetweenTopAndBottomMargins - linesToScroll, mLeftMargin, mTopMargin + linesToScroll);
                     blockClear(mLeftMargin, mTopMargin, mRightMargin - mLeftMargin, linesToScroll);
                 } else {
-
                     unimplementedSequence(b);
                 }
                 break;
@@ -1482,7 +1446,6 @@ public final class TerminalEmulator {
                 break;
             case 'r':
             {
-
                 mTopMargin = Math.max(0, Math.min(getArg0(1) - 1, mRows - 2));
                 mBottomMargin = Math.max(mTopMargin + 2, Math.min(getArg1(mRows), mRows));
 
@@ -1491,13 +1454,11 @@ public final class TerminalEmulator {
             break;
             case 's':
                 if (isDecsetInternalBitSet(DECSET_BIT_LEFTRIGHT_MARGIN_MODE)) {
-
                     mLeftMargin = Math.min(getArg0(1) - 1, mColumns - 2);
                     mRightMargin = Math.max(mLeftMargin + 1, Math.min(getArg1(mColumns), mColumns));
 
                     setCursorPosition(0, 0);
                 } else {
-
                     saveCursor();
                 }
                 break;
@@ -1532,7 +1493,6 @@ public final class TerminalEmulator {
 
                         mTitleStack.push(mTitle);
                         if (mTitleStack.size() > 20) {
-
                             mTitleStack.remove(0);
                         }
                         break;
@@ -1559,7 +1519,6 @@ public final class TerminalEmulator {
     private void selectGraphicRendition() {
         if (mArgIndex >= mArgs.length) mArgIndex = mArgs.length - 1;
         for (int i = 0; i <= mArgIndex; i++) {
-
             if ((mArgsSubParamsBitSet & (1 << i)) != 0) {
                 continue;
             }
@@ -1584,13 +1543,10 @@ public final class TerminalEmulator {
                 mEffect |= TextStyle.CHARACTER_ATTRIBUTE_ITALIC;
             } else if (code == 4) {
                 if (i + 1 <= mArgIndex && ((mArgsSubParamsBitSet & (1 << (i + 1))) != 0)) {
-
                     i++;
                     if (mArgs[i] == 0) {
-
                         mEffect &= ~TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE;
                     } else {
-
                         mEffect |= TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE;
                     }
                 } else {
@@ -1605,9 +1561,7 @@ public final class TerminalEmulator {
             } else if (code == 9) {
                 mEffect |= TextStyle.CHARACTER_ATTRIBUTE_STRIKETHROUGH;
             } else if (code == 10) {
-
             } else if (code == 11) {
-
             } else if (code == 22) {
                 mEffect &= ~(TextStyle.CHARACTER_ATTRIBUTE_BOLD | TextStyle.CHARACTER_ATTRIBUTE_DIM);
             } else if (code == 23) {
@@ -1625,7 +1579,6 @@ public final class TerminalEmulator {
             } else if (code >= 30 && code <= 37) {
                 mForeColor = code - 30;
             } else if (code == 38 || code == 48 || code == 58) {
-
                 if (i + 2 > mArgIndex) continue;
                 int firstArg = mArgs[i + 1];
                 if (firstArg == 2) {
@@ -1755,7 +1708,6 @@ public final class TerminalEmulator {
                             }
                         }
                     } else if (parsingPairStart >= 0) {
-
                     } else if (parsingPairStart < 0 && (b >= '0' && b <= '9')) {
                         colorIndex = ((colorIndex < 0) ? 0 : colorIndex * 10) + (b - '0');
                     } else {
@@ -1776,7 +1728,6 @@ public final class TerminalEmulator {
                         try {
                             String colorSpec = textParameter.substring(lastSemiIndex, charIndex);
                             if ("?".equals(colorSpec)) {
-
                                 int rgb = mColors.mCurrentColors[specialIndex];
                                 int r = (65535 * ((rgb & 0x00FF0000) >> 16)) / 255;
                                 int g = (65535 * ((rgb & 0x0000FF00) >> 8)) / 255;
@@ -1792,7 +1743,6 @@ public final class TerminalEmulator {
                                 break;
                             lastSemiIndex = charIndex;
                         } catch (NumberFormatException e) {
-
                         }
                     }
                 }
@@ -1824,7 +1774,6 @@ public final class TerminalEmulator {
                                 charIndex++;
                                 lastIndex = charIndex;
                             } catch (NumberFormatException e) {
-
                             }
                         }
                     }
@@ -1891,7 +1840,6 @@ public final class TerminalEmulator {
         mScrollCounter++;
         long currentStyle = getStyle();
         if (mLeftMargin != 0 || mRightMargin != mColumns) {
-
             mScreen.blockCopy(mLeftMargin, mTopMargin + 1, mRightMargin - mLeftMargin, mBottomMargin - mTopMargin - 1, mLeftMargin, mTopMargin);
 
             mScreen.blockSet(mLeftMargin, mBottomMargin - 1, mRightMargin - mLeftMargin, 1, ' ', currentStyle);
@@ -2008,7 +1956,6 @@ public final class TerminalEmulator {
     private void emitCodePoint(int codePoint) {
         mLastEmittedCodePoint = codePoint;
         if (mUseLineDrawingUsesG0 ? mUseLineDrawingG0 : mUseLineDrawingG1) {
-
             switch (codePoint) {
                 case '_':
                     codePoint = ' ';
@@ -2127,12 +2074,10 @@ public final class TerminalEmulator {
                 }
             }
         } else if (cursorInLastColumn && displayWidth == 2) {
-
             return;
         }
 
         if (mInsertMode && displayWidth > 0) {
-
             int destCol = mCursorCol + displayWidth;
             if (destCol < mRightMargin)
                 mScreen.blockCopy(mCursorCol, mCursorRow, mRightMargin - destCol, 1, destCol, mCursorRow);
@@ -2234,7 +2179,6 @@ public final class TerminalEmulator {
     }
 
     public void paste(String text) {
-
         text = text.replaceAll("(\u001B|[\u0080-\u009F])", "");
 
         text = text.replaceAll("\r?\n", "\r");
@@ -2246,7 +2190,6 @@ public final class TerminalEmulator {
     }
 
     static final class SavedScreenState {
-
         int mSavedCursorRow, mSavedCursorCol;
         int mSavedEffect, mSavedForeColor, mSavedBackColor;
         int mSavedDecFlags;
@@ -2258,5 +2201,4 @@ public final class TerminalEmulator {
         return "TerminalEmulator[size=" + mScreen.mColumns + "x" + mScreen.mScreenRows + ", margins={" + mTopMargin + "," + mRightMargin + "," + mBottomMargin
             + "," + mLeftMargin + "}]";
     }
-
 }

@@ -1,0 +1,14 @@
+#!/bin/bash
+# Copyright 2026 deepcodecreate
+# SPDX-License-Identifier: Apache-2.0
+cat <<'T'
+Terbian — Debian 12 on Android (PRoot, no root)
+  terbian-setup      install nano/vim/git/python/build tools (once)
+  terbian-gui        XFCE desktop via VNC (install/start/stop)
+  terbian-appimage   run AppImage files (extract-and-run, no FUSE)
+  terbian-doctor     diagnostics if apt/dpkg fails
+  cat /root/.terbian/install.log   rootfs installation report
+  apt install <pkg>  any Debian package for this CPU architecture
+Not possible under PRoot (needs systemd / kernel namespaces / mounts):
+  snap, and Flatpak (bwrap sandbox). Use apt packages or AppImage instead.
+T

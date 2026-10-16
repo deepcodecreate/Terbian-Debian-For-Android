@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public interface TerminalSessionClient {
-
     void onTextChanged(@NonNull TerminalSession changedSession);
 
     void onTitleChanged(@NonNull TerminalSession changedSession);
@@ -38,5 +39,4 @@ public interface TerminalSessionClient {
     void logStackTraceWithMessage(String tag, String message, Exception e);
 
     void logStackTrace(String tag, Exception e);
-
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 import android.util.Log;
@@ -7,7 +9,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public class Logger {
-
     public static void logError(TerminalSessionClient client, String logTag, String message) {
         if (client != null)
             client.logError(logTag, message);
@@ -76,5 +77,4 @@ public class Logger {
 
         return stackTraceString;
     }
-
 }

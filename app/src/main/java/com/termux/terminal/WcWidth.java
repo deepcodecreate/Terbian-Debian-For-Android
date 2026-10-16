@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 public final class WcWidth {
-
     private static final int[][] ZERO_WIDTH = {
         {0x00300, 0x0036f},
         {0x00483, 0x00489},
@@ -473,7 +474,6 @@ public final class WcWidth {
     };
 
     private static boolean intable(int[][] table, int c) {
-
         if (c < table[0][0]) return false;
 
         int bot = 0;
@@ -534,5 +534,4 @@ public final class WcWidth {
         }
         return count;
     }
-
 }

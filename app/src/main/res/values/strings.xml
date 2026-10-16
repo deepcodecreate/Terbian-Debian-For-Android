@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2026 deepcodecreate
+  SPDX-License-Identifier: Apache-2.0
+-->
 <resources>
     <string name="app_name">Terbian</string>
     <string name="new_session">New session</string>
     <string name="close_session">Close session</string>
+    <string name="close_this">Close this</string>
+    <string name="close_other">Close other</string>
+    <string name="close_all">Close all</string>
     <string name="menu">Menu</string>
     <string name="settings">Settings</string>
+    <string name="storage_access">Storage access</string>
+    <string name="storage_access_granted">Storage access is already granted</string>
     <string name="settings_sub">Theme, cursor, keys, zoom</string>
     <string name="close">Close</string>
     <string name="copy_screen">Copy screen</string>

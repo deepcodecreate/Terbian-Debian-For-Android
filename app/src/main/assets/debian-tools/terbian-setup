@@ -1,0 +1,19 @@
+#!/bin/bash
+# Copyright 2026 deepcodecreate
+# SPDX-License-Identifier: Apache-2.0
+set -e
+export DEBIAN_FRONTEND=noninteractive
+rm -f /etc/dpkg/dpkg.cfg.d/docker /etc/dpkg/dpkg.cfg.d/excludes 2>/dev/null || true
+echo ">> apt update"
+apt-get update
+echo ">> installing base tools"
+apt-get install -y --no-install-recommends \
+  nano vim sudo curl wget git ca-certificates gnupg locales procps psmisc htop less \
+  man-db manpages bash-completion xz-utils zip unzip bzip2 tar file tree rsync \
+  iproute2 iputils-ping net-tools dnsutils openssh-client python3 python3-pip python3-venv \
+  build-essential pkg-config tmux unzip zstd lsb-release tzdata dbus-x11 xdg-utils \
+  apt-utils fonts-dejavu-core
+apt-get install -y --no-install-recommends fastfetch 2>/dev/null || true
+mkdir -p /root/.terbian && touch /root/.terbian/setup-done
+echo ">> done. Try: nano, vim, git, python3, apt install <anything>"
+echo "   GUI: terbian-gui install   |   AppImage: terbian-appimage <file>"

@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2026 deepcodecreate
+  SPDX-License-Identifier: Apache-2.0
+-->
 <resources>
-    <color name="bg">#14100C</color>
-    <color name="surface">#1C1510</color>
-    <color name="surface_high">#271C15</color>
-    <color name="fg">#F3E6D8</color>
-    <color name="muted">#C9B09A</color>
-    <color name="subtle">#8F7460</color>
-    <color name="primary">#E8B089</color>
-    <color name="primary_dim">#A56B42</color>
-    <color name="primary_container">#5C3A22</color>
-    <color name="on_primary">#2A1608</color>
-    <color name="border">#3D2C22</color>
-    <color name="danger">#E89580</color>
+    <color name="bg">#000000</color>
+    <color name="surface">#0D0D0D</color>
+    <color name="surface_high">#1B1B1B</color>
+    <color name="fg">#E6E6E6</color>
+    <color name="muted">#ACACAC</color>
+    <color name="subtle">#777777</color>
+    <color name="primary">#D3D7CF</color>
+    <color name="primary_dim">#A3A6A0</color>
+    <color name="primary_container">#494B48</color>
+    <color name="on_primary">#000000</color>
+    <color name="border">#323232</color>
+    <color name="danger">#F2B8B5</color>
+    <color name="ic_terbian_background">#201F25</color>
 </resources>

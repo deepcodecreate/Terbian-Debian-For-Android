@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 final class ByteQueue {
-
     private final byte[] mBuffer;
     private int mHead;
     private int mStoredBytes;
@@ -22,7 +23,6 @@ final class ByteQueue {
                 try {
                     wait();
                 } catch (InterruptedException e) {
-
                 }
             } else {
                 return 0;
@@ -65,7 +65,6 @@ final class ByteQueue {
                     try {
                         wait();
                     } catch (InterruptedException e) {
-
                     }
                 }
                 if (!mOpen) return false;
@@ -77,7 +76,6 @@ final class ByteQueue {
                     int tail = mHead + mStoredBytes;
                     int oneRun;
                     if (tail >= bufferLength) {
-
                         tail = tail - bufferLength;
                         oneRun = mHead - tail;
                     } else {

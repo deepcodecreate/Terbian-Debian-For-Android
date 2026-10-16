@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.view;
 
 import com.termux.terminal.TerminalRow;
@@ -5,7 +7,6 @@ import com.termux.terminal.WcWidth;
 import java.text.Bidi;
 
 public final class BidiLayout {
-
     public static class LogicalCell {
         public int codePoint;
         public int displayWidth;
@@ -42,12 +43,10 @@ public final class BidiLayout {
     public static BidiLayout build(TerminalRow rowObject, int columns, int cursorCol, boolean cursorVisible,
                                    int selectionY1, int selectionY2, int selectionX1, int selectionX2, int row,
                                    boolean isForRendering) {
-
         if (rowObject.mCachedBidiLayout instanceof BidiLayout) {
             BidiLayout cached = (BidiLayout) rowObject.mCachedBidiLayout;
             if (cached.visualCells.length == columns) {
                 if (isForRendering) {
-
                     int vSelStart = -1;
                     int vSelEnd = -1;
                     boolean hasSel = false;
@@ -152,7 +151,6 @@ public final class BidiLayout {
         LogicalCell[] visualCells = new LogicalCell[columns];
 
         if (activeLength <= 0) {
-
             for (int i = 0; i < columns; i++) {
                 logicalToVisual[i] = i;
                 visualToLogical[i] = i;
@@ -254,7 +252,6 @@ public final class BidiLayout {
                 if (prev.isRtl) {
                     caret = i;
                 } else {
-
                     caret = i + Math.max(1, prev.displayWidth);
                     if (prev.displayWidth == 2 && cursorCol == prevLogical + 1) caret = i + 1;
                 }

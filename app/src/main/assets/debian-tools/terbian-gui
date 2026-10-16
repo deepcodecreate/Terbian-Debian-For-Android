@@ -1,0 +1,34 @@
+#!/bin/bash
+# Copyright 2026 deepcodecreate
+# SPDX-License-Identifier: Apache-2.0
+set -e
+case "${1:-help}" in
+  install)
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends xfce4 xfce4-terminal xfce4-goodies \
+      tigervnc-standalone-server tigervnc-tools dbus-x11 x11-xserver-utils xfonts-base \
+      fonts-dejavu fonts-noto-core firefox-esr
+    mkdir -p ~/.vnc
+    cat > ~/.vnc/xstartup <<'XS'
+#!/bin/sh
+unset SESSION_MANAGER DBUS_SESSION_BUS_ADDRESS
+export XDG_RUNTIME_DIR=/tmp/runtime-root; mkdir -p $XDG_RUNTIME_DIR; chmod 700 $XDG_RUNTIME_DIR
+export LIBGL_ALWAYS_SOFTWARE=1
+exec dbus-launch --exit-with-session startxfce4
+XS
+    chmod +x ~/.vnc/xstartup
+    echo "Set a VNC password now:"; vncpasswd
+    echo "Installed. Start with: terbian-gui start"
+    ;;
+  start)
+    GEO="${2:-1280x720}"
+    vncserver -kill :1 >/dev/null 2>&1 || true
+    rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
+    vncserver :1 -geometry "$GEO" -depth 24 -localhost yes
+    echo "Connect a VNC viewer to 127.0.0.1:5901"
+    ;;
+  stop) vncserver -kill :1 ;;
+  status) vncserver -list ;;
+  *) echo "XFCE desktop over VNC (connect a VNC viewer to localhost:5901)"; echo "usage: terbian-gui install | start [WxH] | stop | status" ;;
+esac

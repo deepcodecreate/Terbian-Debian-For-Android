@@ -1,0 +1,24 @@
+Terbian
+Copyright 2026 deepcodecreate
+
+This product is licensed under the Apache License, Version 2.0.
+
+This product includes third-party software:
+
+Termux terminal emulator and terminal view (src/main/java/com/termux)
+  https://github.com/termux/termux-app
+  Apache License, Version 2.0
+
+PRoot, Termux fork (prebuilt binaries in src/main/assets/proot and src/main/jniLibs)
+  https://github.com/termux/proot
+  GNU General Public License v2.0 or later. Source code is available at the URL above.
+
+libandroid-pty (adapted code in native/pty-helper/pty_helper.c)
+  https://github.com/z80oolong/libandroid-pty
+  Copyright (C) 2008 The Android Open Source Project
+  Copyright (C) 2017 Z.OOL. (NAKATSUKA, Yukitaka)
+  BSD 2-Clause License
+
+Debian GNU/Linux root filesystem (downloaded by tools/fetch-rootfs.sh)
+  https://www.debian.org
+  Packages carry their own licenses in /usr/share/doc/*/copyright.

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 deepcodecreate
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.terbian.debian;
 
 import android.content.Context;
@@ -17,7 +33,6 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 public class RootfsInstaller {
-
     public interface Listener {
         void onProgress(long processedBytes, long totalBytes);
         void onMessage(String message);
@@ -25,6 +40,10 @@ public class RootfsInstaller {
     }
 
     private static final int TAR_BLOCK_SIZE = 512;
+
+    private final StringBuilder installLog = new StringBuilder();
+    private int fileCount, dirCount, symlinkCount, hardLinkCount, hardLinkCopied;
+    private long byteCount, extractMillis;
 
     private final Context context;
     private final File rootfsDirectory;
@@ -77,27 +96,28 @@ public class RootfsInstaller {
 
         notify(listener, "Extracting Debian rootfs...\n\n");
 
-        File stagedTarGz = new File(debianDirectory, "rootfs_staged.tar.gz");
-        try {
-            copyAssetToFile("debian/rootfs.tb", stagedTarGz);
-            extractTarWithProot(stagedTarGz, temporaryRootfs, listener);
-        } catch (Exception prootExtractionFailure) {
-            notify(listener, "PRoot-based extraction failed (" + prootExtractionFailure.getMessage()
-                    + "), falling back to the plain extractor...\n");
-            try (InputStream assetInput = context.getAssets().open("debian/rootfs.tb");
-                 BufferedInputStream bufferedInput = new BufferedInputStream(assetInput, 64 * 1024);
-                 GZIPInputStream gzipInput = new GZIPInputStream(bufferedInput, 64 * 1024)) {
-                extractTar(gzipInput, temporaryRootfs, listener);
-            }
-        } finally {
-            stagedTarGz.delete();
+        long startMs = System.currentTimeMillis();
+        try (InputStream assetInput = context.getAssets().open("debian/rootfs.tb");
+             BufferedInputStream bufferedInput = new BufferedInputStream(assetInput, 64 * 1024);
+             GZIPInputStream gzipInput = new GZIPInputStream(bufferedInput, 64 * 1024)) {
+            extractTar(gzipInput, temporaryRootfs, listener);
         }
+        extractMillis = System.currentTimeMillis() - startMs;
 
         notify(listener, "\nExtraction finished.\n");
         notify(listener, "Verifying Debian filesystem...\n");
 
         verifyRootfs(temporaryRootfs);
         writeEnvironmentDefaults(temporaryRootfs);
+        installTerbianTools(temporaryRootfs);
+        String summary = "Files: " + fileCount + "  Directories: " + dirCount
+                + "  Symlinks: " + symlinkCount + "  Hard links: " + hardLinkCount
+                + "  (copied instead: " + hardLinkCopied + ")\n"
+                + "Data written: " + (byteCount / (1024 * 1024)) + " MiB in " + (extractMillis / 1000.0) + " s\n";
+        notify(listener, "\n" + summary);
+        writeInstallLog(temporaryRootfs, summary);
+        File marker = new File(temporaryRootfs, "etc/terbian-rootfs-v2");
+        writeTextFile(marker, "terbian rootfs v2\n");
 
         if (rootfsDirectory.exists()) {
             notify(listener, "Removing old rootfs...\n");
@@ -110,6 +130,30 @@ public class RootfsInstaller {
         }
 
         notify(listener, "Debian rootfs verification complete.\n");
+    }
+
+    private void writeInstallLog(File rootfsDir, String summary) throws IOException {
+        File dir = new File(rootfsDir, "root/.terbian");
+        createDirectory(dir);
+        String header = "== Terbian: Debian rootfs installation report ==\n"
+                + "ABI: " + ArchitectureDetector.getAbi() + "\n";
+        writeTextFile(new File(dir, "install.log"),
+                header + installLog + "\n" + summary + "== end of report (cat /root/.terbian/install.log) ==\n");
+    }
+
+    private void installTerbianTools(File rootfsDir) throws IOException {
+        File bin = new File(rootfsDir, "usr/local/bin");
+        createDirectory(bin);
+        String[] tools = {"terbian-setup", "terbian-gui", "terbian-appimage", "terbian-help", "terbian-doctor"};
+        for (String t : tools) {
+            copyAssetToFile("debian-tools/" + t, new File(bin, t));
+            makeWritable(new File(bin, t));
+        }
+        File profileD = new File(rootfsDir, "etc/profile.d");
+        createDirectory(profileD);
+        File fr = new File(profileD, "terbian-firstrun.sh");
+        copyAssetToFile("debian-tools/terbian-firstrun.sh", fr);
+        makeWritable(fr);
     }
 
     private void copyAssetToFile(String assetPath, File dest) throws IOException {
@@ -152,6 +196,7 @@ public class RootfsInstaller {
     }
 
     private void notify(Listener listener, String message) {
+        if (message != null && !message.startsWith("Installing: ")) installLog.append(message);
         if (listener != null) {
             listener.onMessage(message);
         }
@@ -221,6 +266,7 @@ public class RootfsInstaller {
 
             if ("5".equals(type) || name.endsWith("/")) {
                 createDirectory(output);
+                dirCount++;
                 makeWritable(output);
                 skipFully(input, size);
                 skipPadding(input, size);
@@ -232,6 +278,7 @@ public class RootfsInstaller {
                 deleteIfExists(output);
                 try {
                     Os.symlink(linkName, output.getAbsolutePath());
+                    symlinkCount++;
                 } catch (Exception e) {
                     throw new IOException("Cannot create symlink: " + name + " -> " + linkName, e);
                 }
@@ -250,6 +297,8 @@ public class RootfsInstaller {
             if ("0".equals(type) || type.length() == 0) {
                 createParent(output);
                 writeFile(input, output, size);
+                fileCount++;
+                byteCount += size;
                 applyMode(output, mode);
                 skipPadding(input, size);
                 continue;
@@ -271,21 +320,13 @@ public class RootfsInstaller {
             createParent(output);
             deleteIfExists(output);
 
-            boolean linked = false;
-            if (target.exists()) {
-                try {
-                    Os.link(target.getAbsolutePath(), output.getAbsolutePath());
-                    linked = true;
-                } catch (Exception ignored) {
-                }
-            }
-
-            if (!linked) {
-                if (target.isFile()) {
-                    copyFile(target, output);
-                } else {
-                    notify(listener, "Warning: missing hard link target for " + link.name + " -> " + link.linkName + "\n");
-                }
+            hardLinkCount++;
+            if (target.isFile()) {
+                copyFile(target, output);
+                hardLinkCopied++;
+                try { Os.chmod(output.getAbsolutePath(), Os.stat(target.getAbsolutePath()).st_mode & 0777); } catch (Exception ignored) { }
+            } else {
+                notify(listener, "Warning: missing hard link target for " + link.name + " -> " + link.linkName + "\n");
             }
         }
     }

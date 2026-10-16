@@ -1,9 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package com.termux.terminal;
 
 import java.util.Arrays;
 
 public final class TerminalRow {
-
     private static final float SPARE_CAPACITY_FACTOR = 1.5f;
 
     private static final int MAX_COMBINING_CHARACTERS_PER_COLUMN = 15;
@@ -42,7 +43,6 @@ public final class TerminalRow {
             char sourceChar = sourceChars[i];
             int codePoint = Character.isHighSurrogate(sourceChar) ? Character.toCodePoint(sourceChar, sourceChars[++i]) : sourceChar;
             if (startingFromSecondHalfOfWideChar) {
-
                 codePoint = ' ';
                 startingFromSecondHalfOfWideChar = false;
             }
@@ -75,7 +75,6 @@ public final class TerminalRow {
                 currentColumn += wcwidth;
                 if (currentColumn == column) {
                     while (newCharIndex < mSpaceUsed) {
-
                         if (Character.isHighSurrogate(mText[newCharIndex])) {
                             if (WcWidth.width(Character.toCodePoint(mText[newCharIndex], mText[newCharIndex + 1])) <= 0) {
                                 newCharIndex += 2;
@@ -90,7 +89,6 @@ public final class TerminalRow {
                     }
                     return newCharIndex;
                 } else if (currentColumn > column) {
-
                     return currentCharIndex;
                 }
             }
@@ -147,10 +145,8 @@ public final class TerminalRow {
         boolean wasExtraColForWideChar = (columnToSet > 0) && wideDisplayCharacterStartingAt(columnToSet - 1);
 
         if (newIsCombining) {
-
             if (wasExtraColForWideChar) columnToSet--;
         } else {
-
             if (wasExtraColForWideChar) setChar(columnToSet - 1, ' ', style);
 
             boolean overwritingWideCharInNextColumn = newCodePointDisplayWidth == 2 && wideDisplayCharacterStartingAt(columnToSet + 1);
@@ -166,7 +162,6 @@ public final class TerminalRow {
             int oldEndOfColumnIndex = findStartOfColumn(columnToSet + oldCodePointDisplayWidth);
             oldCharactersUsedForColumn = oldEndOfColumnIndex - oldStartOfColumnIndex;
         } else {
-
             oldCharactersUsedForColumn = mSpaceUsed - oldStartOfColumnIndex;
         }
 
@@ -178,7 +173,6 @@ public final class TerminalRow {
 
         int newCharactersUsedForColumn = Character.charCount(codePoint);
         if (newIsCombining) {
-
             newCharactersUsedForColumn += oldCharactersUsedForColumn;
         }
 
@@ -187,10 +181,8 @@ public final class TerminalRow {
 
         final int javaCharDifference = newCharactersUsedForColumn - oldCharactersUsedForColumn;
         if (javaCharDifference > 0) {
-
             int oldCharactersAfterColumn = mSpaceUsed - oldNextColumnIndex;
             if (mSpaceUsed + javaCharDifference > text.length) {
-
                 char[] newText = new char[text.length + mColumns];
                 System.arraycopy(text, 0, newText, 0, oldNextColumnIndex);
                 System.arraycopy(text, oldNextColumnIndex, newText, newNextColumnIndex, oldCharactersAfterColumn);
@@ -199,7 +191,6 @@ public final class TerminalRow {
                 System.arraycopy(text, oldNextColumnIndex, text, newNextColumnIndex, oldCharactersAfterColumn);
             }
         } else if (javaCharDifference < 0) {
-
             System.arraycopy(text, oldNextColumnIndex, text, newNextColumnIndex, mSpaceUsed - oldNextColumnIndex);
         }
         mSpaceUsed += javaCharDifference;
@@ -207,7 +198,6 @@ public final class TerminalRow {
         Character.toChars(codePoint, text, oldStartOfColumnIndex + (newIsCombining ? oldCharactersUsedForColumn : 0));
 
         if (oldCodePointDisplayWidth == 2 && newCodePointDisplayWidth == 1) {
-
             if (mSpaceUsed + 1 > text.length) {
                 char[] newText = new char[text.length + mColumns];
                 System.arraycopy(text, 0, newText, 0, newNextColumnIndex);
@@ -223,10 +213,8 @@ public final class TerminalRow {
             if (columnToSet == mColumns - 1) {
                 throw new IllegalArgumentException("Cannot put wide character in last column");
             } else if (columnToSet == mColumns - 2) {
-
                 mSpaceUsed = (short) newNextColumnIndex;
             } else {
-
                 int newNextNextColumnIndex = newNextColumnIndex + (Character.isHighSurrogate(mText[newNextColumnIndex]) ? 2 : 1);
                 int nextLen = newNextNextColumnIndex - newNextColumnIndex;
 
@@ -245,5 +233,4 @@ public final class TerminalRow {
     public final long getStyle(int column) {
         return mStyle[column];
     }
-
 }

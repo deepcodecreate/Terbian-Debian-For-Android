@@ -1,9 +1,24 @@
+/*
+ * Copyright 2026 deepcodecreate
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.terbian.terminal.view;
 
 public class TerminalTheme {
-
+    public static final String ID_BLACK = "termux";
     public static final String ID_BURNT = "burnt";
-    public static final String ID_TERMUX = "termux";
     public static final String ID_GRUVBOX = "gruvbox";
     public static final String ID_SOLARIZED = "solarized";
     public static final String ID_DRACULA = "dracula";
@@ -72,18 +87,18 @@ public class TerminalTheme {
     }
 
     public static TerminalTheme byId(String id) {
-        if (ID_TERMUX.equals(id)) return termuxDark();
+        if (ID_BURNT.equals(id)) return burnt();
         if (ID_GRUVBOX.equals(id)) return gruvbox();
         if (ID_SOLARIZED.equals(id)) return solarizedDark();
         if (ID_DRACULA.equals(id)) return dracula();
         if (ID_NORD.equals(id)) return nord();
         if (ID_LIGHT.equals(id)) return lightPaper();
-        return burnt();
+        return black();
     }
 
     public static TerminalTheme[] all() {
         return new TerminalTheme[]{
-                burnt(), termuxDark(), gruvbox(), solarizedDark(), dracula(), nord(), lightPaper()
+                black(), burnt(), gruvbox(), solarizedDark(), dracula(), nord(), lightPaper()
         };
     }
 
@@ -103,10 +118,10 @@ public class TerminalTheme {
                 .build();
     }
 
-    public static TerminalTheme termuxDark() {
+    public static TerminalTheme black() {
         return builder()
-                .id(ID_TERMUX)
-                .name("Termux dark")
+                .id(ID_BLACK)
+                .name("Black")
                 .backgroundColor(0xFF000000)
                 .foregroundColor(0xFFE6E6E6)
                 .cursorColor(0xFFD3D7CF)
