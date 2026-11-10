@@ -89,7 +89,7 @@ for ABI in $ABIS; do
     cd "$B/src"
     export CC LD="$CC" STRIP="$TC/llvm-strip" OBJCOPY="$TC/llvm-objcopy" OBJDUMP="$TC/llvm-objdump" AR="$TC/llvm-ar"
     export CFLAGS="-I$TD/include -O2 -DARG_MAX=131072 -Wno-error"
-    export CPPFLAGS="-I$TD/include -DARG_MAX=131072"
+    export CPPFLAGS="-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -I. -I$TD/include -DARG_MAX=131072"
     export LDFLAGS="-L$TD/lib"
     export PKG_CONFIG=false
     make V=1 -j"$(nproc 2>/dev/null || echo 4)" \
