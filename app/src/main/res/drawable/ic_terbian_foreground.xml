@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2026 deepcodecreate
+  SPDX-License-Identifier: Apache-2.0
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1093"
+    android:viewportHeight="1093">
+    <group
+        android:pivotX="546.5"
+        android:pivotY="546.5"
+        android:scaleX="0.84"
+        android:scaleY="0.84">
+        <path
+            android:pathData="M590,828 C420,810 320,690 335,520 C350,400 450,330 580,330 C690,330 748,430 742,540 C735,650 650,700 565,690 C495,680 465,620 475,555 C485,495 545,455 600,468 C640,478 655,520 650,550"
+            android:strokeColor="#6B1A33"
+            android:strokeWidth="34"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M362,318 L540,497 L312,715"
+            android:strokeColor="#F6F6F6"
+            android:strokeWidth="96"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M590,744 L830,744"
+            android:strokeColor="#F6F6F6"
+            android:strokeWidth="96"
+            android:strokeLineCap="round" />
+    </group>
+</vector>

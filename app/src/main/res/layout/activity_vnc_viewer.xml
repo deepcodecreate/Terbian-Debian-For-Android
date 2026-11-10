@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2026 deepcodecreate
+  SPDX-License-Identifier: Apache-2.0
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/viewerRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:id="@+id/viewerBody"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <com.terbian.gui.VncFramebufferView
+            android:id="@+id/desktopView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:id="@+id/touchpadPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FF0D0D0D"
+            android:tag="panel"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="130dp"
+                android:orientation="horizontal">
+
+                <com.terbian.gui.VncTouchpadView
+                    android:id="@+id/touchpad"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1" />
+
+                <com.terbian.gui.VncScrollStripView
+                    android:id="@+id/scrollStrip"
+                    android:layout_width="48dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="6dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/padLeft"
+                    style="@style/ViewerChip"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:text="@string/gui_pad_left"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/padRight"
+                    style="@style/ViewerChip"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_marginEnd="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/gui_pad_right"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <HorizontalScrollView
+            android:id="@+id/keyBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#CC0D0D0D"
+            android:tag="overlay"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="6dp">
+
+                <TextView android:id="@+id/keyEsc" style="@style/ViewerChip" android:text="@string/gui_esc" />
+                <TextView android:id="@+id/keyTab" style="@style/ViewerChip" android:text="@string/gui_tab" />
+                <TextView android:id="@+id/keyCtrl" style="@style/ViewerChip" android:text="@string/gui_ctrl" />
+                <TextView android:id="@+id/keyAlt" style="@style/ViewerChip" android:text="@string/gui_alt" />
+                <TextView android:id="@+id/keyShift" style="@style/ViewerChip" android:text="@string/gui_shift" />
+                <TextView android:id="@+id/keyLeft" style="@style/ViewerChip" android:text="@string/gui_arrow_left" />
+                <TextView android:id="@+id/keyUp" style="@style/ViewerChip" android:text="@string/gui_arrow_up" />
+                <TextView android:id="@+id/keyDown" style="@style/ViewerChip" android:text="@string/gui_arrow_down" />
+                <TextView android:id="@+id/keyRight" style="@style/ViewerChip" android:text="@string/gui_arrow_right" />
+                <TextView android:id="@+id/keyFn" style="@style/ViewerChip" android:text="@string/gui_fn" />
+            </LinearLayout>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="vertical">
+
+        <HorizontalScrollView
+            android:id="@+id/viewerToolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#CC0D0D0D"
+            android:tag="overlay"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="6dp">
+
+                <TextView
+                    android:id="@+id/viewerStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxWidth="180dp"
+                    android:padding="8dp"
+                    android:singleLine="true"
+                    android:textColor="@color/muted"
+                    android:textSize="12sp" />
+
+                <TextView android:id="@+id/btnKeyboard" style="@style/ViewerChip" android:text="@string/gui_keys" />
+                <TextView android:id="@+id/btnPad" style="@style/ViewerChip" android:text="@string/gui_pad" />
+                <TextView android:id="@+id/btnRight" style="@style/ViewerChip" android:text="@string/gui_right" />
+                <TextView android:id="@+id/btnMiddle" style="@style/ViewerChip" android:text="@string/gui_middle" />
+                <TextView android:id="@+id/btnDrag" style="@style/ViewerChip" android:text="@string/gui_drag" />
+                <TextView android:id="@+id/btnScroll" style="@style/ViewerChip" android:text="@string/gui_scroll" />
+                <TextView android:id="@+id/btnZoomIn" style="@style/ViewerChip" android:text="@string/gui_zoom_in" />
+                <TextView android:id="@+id/btnZoomOut" style="@style/ViewerChip" android:text="@string/gui_zoom_out" />
+                <TextView android:id="@+id/btnFit" style="@style/ViewerChip" android:text="@string/gui_fit" />
+                <TextView android:id="@+id/btnOneToOne" style="@style/ViewerChip" android:text="@string/gui_actual" />
+                <TextView android:id="@+id/btnFullscreen" style="@style/ViewerChip" android:text="@string/gui_fullscreen" />
+                <TextView android:id="@+id/btnResize" style="@style/ViewerChip" android:text="@string/gui_resize" />
+                <TextView android:id="@+id/btnPaste" style="@style/ViewerChip" android:text="@string/paste" />
+                <TextView android:id="@+id/btnSwitch" style="@style/ViewerChip" android:text="@string/gui_switch" />
+                <TextView android:id="@+id/btnViewerDisconnect" style="@style/ViewerChip" android:text="@string/gui_disconnect" />
+                <TextView android:id="@+id/btnHideChrome" style="@style/ViewerChip" android:text="@string/gui_hide" />
+            </LinearLayout>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/showChrome"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="8dp"
+        android:background="@drawable/bg_chip"
+        android:tag="chip"
+        android:gravity="center"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:text="@string/gui_show"
+        android:textColor="@color/fg"
+        android:textStyle="bold"
+        android:visibility="gone" />
+</FrameLayout>

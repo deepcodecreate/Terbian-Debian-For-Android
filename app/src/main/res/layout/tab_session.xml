@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2026 deepcodecreate
+  SPDX-License-Identifier: Apache-2.0
+
+  One session tab: a floating pill. The selected pill is filled, shows a morphing shape and a
+  close button; the others are quiet.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
+    android:paddingStart="3dp"
+    android:paddingEnd="3dp">
+
+    <LinearLayout
+        android:id="@+id/tabPill"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:minWidth="84dp"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp">
+
+        <com.terbian.ui.ExpressiveShapeView
+            android:id="@+id/tabDot"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/tabTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="monospace"
+            android:maxWidth="140dp"
+            android:singleLine="true"
+            android:textColor="@color/fg"
+            android:textSize="12sp" />
+
+        <ImageView
+            android:id="@+id/tabClose"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@string/close_session"
+            android:padding="3dp"
+            android:src="@drawable/ic_close"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

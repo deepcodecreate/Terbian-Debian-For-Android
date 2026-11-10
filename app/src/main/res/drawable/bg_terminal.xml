@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2026 deepcodecreate
+  SPDX-License-Identifier: Apache-2.0
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#14181A" />
+    <corners android:radius="12dp" />
+    <stroke android:width="1dp" android:color="#2C3438" />
+</shape>

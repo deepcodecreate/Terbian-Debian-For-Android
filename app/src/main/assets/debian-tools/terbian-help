@@ -1,0 +1,19 @@
+#!/bin/bash
+# Copyright 2026 deepcodecreate
+# SPDX-License-Identifier: Apache-2.0
+NAME=Linux
+if [ -r /etc/os-release ]; then
+  NAME=$(. /etc/os-release; echo "${PRETTY_NAME:-Linux}")
+fi
+cat <<T
+Terbian - $NAME on Android (PRoot, no root)
+  terbian-setup      install nano/vim/git/python/build tools (once)
+  terbian-gui        XFCE desktop via VNC (install/start/stop), or use the Terbian GUI menu
+  terbian-appimage   run AppImage files (extract-and-run, no FUSE)
+  terbian-doctor     diagnostics if apt/dpkg fails
+  cat /root/.terbian/install.log   rootfs installation report
+  apt install <pkg>  any package for this CPU architecture
+Not possible under PRoot (needs systemd / kernel namespaces / mounts):
+  snap, and Flatpak (bwrap sandbox). Use apt packages or AppImage instead.
+  (On Ubuntu, firefox and chromium from apt are snap stubs: terbian-gui install adds Firefox from the Mozilla PPA.)
+T

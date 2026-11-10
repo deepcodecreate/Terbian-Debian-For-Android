@@ -1,0 +1,272 @@
+#!/bin/bash
+# Copyright 2026 deepcodecreate
+# SPDX-License-Identifier: Apache-2.0
+# XFCE desktop over TigerVNC for Debian and Ubuntu. Several desktops can run at once: desktop N listens on
+# 127.0.0.1:(5900+N). Terbian GUI passes the number as TERBIAN_DISPLAY and as the last argument (1..9).
+set -e
+[ -n "${TERBIAN_DEBUG:-}" ] && set -x
+
+TB_ID=debian
+if [ -r /etc/os-release ]; then
+  TB_ID=$(. /etc/os-release; echo "${ID:-debian}")
+fi
+
+# /tmp is shared by every distribution Terbian runs (and so are the loopback ports), so a display number
+# belongs to exactly one system. Each desktop leaves a marker /tmp/.terbian-display-N = "<distro> <Xvnc pid>"
+# that the app reads to know which system owns which display.
+EXPLICIT=0
+[ -n "${TERBIAN_DISPLAY:-}" ] && EXPLICIT=1
+DISP="${TERBIAN_DISPLAY:-1}"
+case "${1:-help}" in
+  start) [ -n "${3:-}" ] && { DISP="$3"; EXPLICIT=1; } ;;
+  stop|status) [ -n "${2:-}" ] && { DISP="$2"; EXPLICIT=1; } ;;
+esac
+case "$DISP" in
+  [1-9]) ;;
+  *) echo "Invalid display number: $DISP (use 1 to 9)"; exit 1 ;;
+esac
+
+# Everything below only reads files and /proc: no process is spawned and no port is opened. (Opening a VNC port
+# and closing it without logging in counts as a failed login for TigerVNC, and slow helpers such as
+# "vncserver -list" made "terbian-gui start" look frozen.)
+marker() { echo "/tmp/.terbian-display-$1"; }
+marker_owner() { [ -r "$(marker "$1")" ] && cut -d' ' -f1 "$(marker "$1")" || true; }
+pid_alive() { [ -n "$1" ] && [ -d "/proc/$1" ]; }
+# Xvnc pid of display $1 from the X lock file in the shared /tmp (empty when there is none).
+lock_pid() { [ -r "/tmp/.X$1-lock" ] && tr -d ' \n' < "/tmp/.X$1-lock" || true; }
+x_alive() { pid_alive "$(lock_pid "$1")"; }
+# pid file TigerVNC keeps in this system's own home for display $1 (host name part is ignored).
+own_pidfile_alive() {
+  local f
+  for f in "$HOME"/.vnc/*":$1.pid" "$HOME"/.config/tigervnc/*":$1.pid"; do
+    [ -r "$f" ] && pid_alive "$(tr -d ' \n' < "$f")" && return 0
+  done
+  return 1
+}
+# True when display $1 is one of this system's own desktops.
+own_display() {
+  if [ -r "$(marker "$1")" ]; then
+    [ "$(marker_owner "$1")" = "$TB_ID" ] && return 0
+    return 1
+  fi
+  own_pidfile_alive "$1"
+}
+# True when a live desktop that is not ours is using display $1.
+display_taken_by_other() {
+  x_alive "$1" || return 1
+  own_display "$1" && return 1
+  return 0
+}
+own_displays() {
+  local d
+  for d in 1 2 3 4 5 6 7 8 9; do
+    if own_display "$d" && { x_alive "$d" || [ -e "/tmp/.X$d-lock" ]; }; then echo "$d"; fi
+  done
+}
+pick_display() {
+  local d
+  for d in 1 2 3 4 5 6 7 8 9; do
+    display_taken_by_other "$d" && continue
+    echo "$d"; return 0
+  done
+  return 1
+}
+record_display() {
+  local pid; pid=$(lock_pid "$1")
+  [ -n "$pid" ] || pid=$$
+  echo "$TB_ID $pid" > "$(marker "$1")"
+}
+# Runs a command but never waits longer than $1 seconds for it.
+limited() {
+  local secs="$1"; shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout --foreground -k 3 "$secs" "$@" </dev/null
+  else
+    "$@" </dev/null
+  fi
+}
+
+# Debian's perl "vncserver" wrapper can stall for good under PRoot (it was the step that never returned), so the
+# desktop is started without it: Xtigervnc and the session are launched directly and polled with a time limit.
+vnc_dir() { echo "$HOME/.vnc"; }
+session_pidfile() { echo "$HOME/.vnc/terbian-session-$1.pid"; }
+kill_wait() {
+  local pid="$1" i
+  [ -n "$pid" ] || return 0
+  kill -TERM "$pid" 2>/dev/null || return 0
+  for i in 1 2 3 4 5 6 7 8 9 10; do pid_alive "$pid" || return 0; sleep 0.5; done
+  kill -KILL "$pid" 2>/dev/null || true
+}
+stop_display() {
+  local d="$1" sp spid xp
+  sp=$(session_pidfile "$d")
+  if [ -r "$sp" ]; then
+    spid=$(tr -d ' \n' < "$sp")
+    # The session was started in its own process group: end the whole desktop session.
+    [ -n "$spid" ] && kill -TERM -- "-$spid" 2>/dev/null || true
+  fi
+  xp=$(lock_pid "$d")
+  pid_alive "$xp" && kill_wait "$xp"
+  [ -n "${spid:-}" ] && kill -KILL -- "-$spid" 2>/dev/null || true
+  rm -f "$sp" "/tmp/.X$d-lock" "/tmp/.X11-unix/X$d" "$(marker "$d")" "$HOME/.vnc/Xauthority-$d"
+}
+start_direct() {
+  local d="$1" geo="$2" log auth cookie xpid i
+  log="$HOME/.vnc/terbian:$d.log"
+  auth="$HOME/.vnc/Xauthority-$d"
+  mkdir -p "$HOME/.vnc"
+  if [ ! -f "$HOME/.vnc/passwd" ]; then
+    echo "No VNC password yet. Set one in Terbian GUI, or run: vncpasswd"
+    exit 1
+  fi
+  cookie=$(mcookie 2>/dev/null || od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+  rm -f "$auth"; : > "$auth"
+  limited 10 xauth -f "$auth" add ":$d" . "$cookie" >/dev/null 2>&1 || true
+  echo "[terbian-gui] launching Xtigervnc :$d"
+  nohup setsid Xtigervnc ":$d" -geometry "$geo" -depth 24 -localhost -nolisten tcp \
+    -rfbport "$((5900 + d))" -rfbauth "$HOME/.vnc/passwd" -SecurityTypes VncAuth \
+    -desktop "terbian:$d ($TB_ID)" -auth "$auth" -AlwaysShared >"$log" 2>&1 </dev/null &
+  xpid=$!
+  for i in $(seq 1 60); do
+    [ -S "/tmp/.X11-unix/X$d" ] && break
+    if ! pid_alive "$xpid"; then
+      echo "Xtigervnc stopped right after starting. Log ($log):"
+      tail -n 20 "$log"
+      rm -f "/tmp/.X$d-lock" "/tmp/.X11-unix/X$d"
+      exit 1
+    fi
+    sleep 0.5
+  done
+  if [ ! -S "/tmp/.X11-unix/X$d" ]; then
+    echo "Xtigervnc did not open display :$d within 30 s. Log ($log):"
+    tail -n 20 "$log"
+    kill_wait "$xpid"
+    exit 1
+  fi
+  echo "$TB_ID $xpid" > "$(marker "$d")"
+  echo "[terbian-gui] starting the desktop session"
+  DISPLAY=":$d" XAUTHORITY="$auth" nohup setsid "$HOME/.vnc/xstartup" \
+    >"$HOME/.vnc/terbian-session-$d.log" 2>&1 </dev/null &
+  echo $! > "$(session_pidfile "$d")"
+}
+
+write_xstartup() {
+  mkdir -p "$HOME/.vnc"
+  cat > "$HOME/.vnc/xstartup" <<'XS'
+#!/bin/sh
+unset SESSION_MANAGER DBUS_SESSION_BUS_ADDRESS
+N="${DISPLAY##*:}"; N="${N%%.*}"
+export XDG_RUNTIME_DIR="/tmp/runtime-root-${N:-1}"; mkdir -p "$XDG_RUNTIME_DIR"; chmod 700 "$XDG_RUNTIME_DIR"
+export LIBGL_ALWAYS_SOFTWARE=1
+[ -s /etc/machine-id ] || dbus-uuidgen --ensure 2>/dev/null
+exec dbus-launch --exit-with-session startxfce4
+XS
+  chmod +x "$HOME/.vnc/xstartup"
+}
+
+# TigerVNC 1.13 (Ubuntu 24.04) prefers ~/.config/tigervnc over the old ~/.vnc; keep both in step.
+sync_tigervnc_config() {
+  [ "$TB_ID" = ubuntu ] || return 0
+  mkdir -p "$HOME/.config/tigervnc"
+  cp -f "$HOME/.vnc/xstartup" "$HOME/.config/tigervnc/xstartup" 2>/dev/null || true
+  [ -f "$HOME/.vnc/passwd" ] && cp -f "$HOME/.vnc/passwd" "$HOME/.config/tigervnc/passwd" || true
+}
+
+# Ubuntu's own "firefox" package is a snap stub and snap does not work under PRoot, so use the Mozilla team PPA.
+install_firefox_ubuntu() {
+  apt-get install -y --no-install-recommends ca-certificates gnupg dirmngr software-properties-common || return 1
+  add-apt-repository -y ppa:mozillateam/ppa || return 1
+  printf 'Package: *\nPin: release o=LP-PPA-mozillateam\nPin-Priority: 1001\n' > /etc/apt/preferences.d/mozilla-firefox
+  apt-get update && apt-get install -y --no-install-recommends firefox
+}
+
+case "${1:-help}" in
+  install)
+    export DEBIAN_FRONTEND=noninteractive
+    PKGS="xfce4 xfce4-terminal xfce4-goodies tigervnc-standalone-server tigervnc-tools dbus-x11 \
+      x11-xserver-utils xfonts-base fonts-dejavu fonts-noto-core ca-certificates"
+    apt-get update
+    if [ "$TB_ID" = ubuntu ]; then
+      apt-get install -y --no-install-recommends $PKGS
+      install_firefox_ubuntu || echo "Firefox could not be installed (not needed for the desktop). Install a browser later with apt."
+    else
+      apt-get install -y --no-install-recommends $PKGS firefox-esr
+    fi
+    write_xstartup
+    if [ -f "$HOME/.vnc/passwd.incoming" ]; then
+      tr -d '\r\n' < "$HOME/.vnc/passwd.incoming" | vncpasswd -f > "$HOME/.vnc/passwd"
+      rm -f "$HOME/.vnc/passwd.incoming"
+      chmod 600 "$HOME/.vnc/passwd"
+      echo "VNC password saved."
+    elif [ -t 0 ]; then
+      echo "Set a VNC password now:"
+      vncpasswd
+    elif [ ! -f "$HOME/.vnc/passwd" ]; then
+      echo "No VNC password yet. Set one in Terbian GUI, or run: vncpasswd"
+      exit 1
+    else
+      echo "Keeping the existing VNC password."
+    fi
+    sync_tigervnc_config
+    echo "Installed. Start with: terbian-gui start"
+    ;;
+  start)
+    GEO="${2:-1280x720}"
+    case "$GEO" in
+      [0-9]*x[0-9]*) ;;
+      *) echo "Invalid geometry: $GEO"; exit 1 ;;
+    esac
+    echo "[terbian-gui] $TB_ID: checking display :$DISP ..."
+    if [ "$EXPLICIT" = 1 ]; then
+      if display_taken_by_other "$DISP"; then
+        echo "Display :$DISP is already used by another system. Pick a free display number."
+        exit 1
+      fi
+    else
+      # No number given (started by hand): reuse our own desktop on :1 if any, otherwise the first free display.
+      if display_taken_by_other "$DISP"; then
+        DISP=$(pick_display) || { echo "No free display (1 to 9)."; exit 1; }
+        echo "Display :1 is busy, using :$DISP instead."
+      fi
+      PORT=$((5900 + DISP))
+    fi
+    echo "[terbian-gui] $TB_ID: using display :$DISP"
+    write_xstartup
+    sync_tigervnc_config
+    echo "Starting $TB_ID desktop on display :$DISP ..."
+    stop_display "$DISP"
+    if command -v Xtigervnc >/dev/null 2>&1; then
+      start_direct "$DISP" "$GEO"
+    else
+      echo "[terbian-gui] launching vncserver :$DISP"
+      vncserver ":$DISP" -geometry "$GEO" -depth 24 -localhost yes </dev/null
+      record_display "$DISP"
+    fi
+    echo "Connect a VNC viewer to 127.0.0.1:$PORT"
+    ;;
+  stop)
+    if [ "$EXPLICIT" = 1 ]; then
+      TARGETS="$DISP"
+    else
+      TARGETS=$(own_displays || true)
+      [ -n "$TARGETS" ] || TARGETS=1
+    fi
+    for d in $TARGETS; do
+      # Never touch a desktop that belongs to the other system.
+      if display_taken_by_other "$d"; then
+        echo "Display :$d belongs to another system, leaving it alone."
+        continue
+      fi
+      stop_display "$d"
+    done
+    ;;
+  status)
+    for d in 1 2 3 4 5 6 7 8 9; do
+      if [ -r "$(marker "$d")" ]; then echo "display :$d owner=$(marker_owner "$d") live=$(x_alive "$d" && echo yes || echo no)"; fi
+    done
+    ;;
+  *)
+    echo "XFCE desktop over VNC (Terbian GUI connects to 127.0.0.1:5901 and up)"
+    echo "usage: terbian-gui install | start [WxH] [DISPLAY] | stop [DISPLAY] | status"
+    ;;
+esac

@@ -1,0 +1,18 @@
+# Copyright 2026 deepcodecreate
+# SPDX-License-Identifier: Apache-2.0
+name: build-proot
+on: [workflow_dispatch, push]
+jobs:
+  proot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build proot with the NDK
+        run: |
+          export ANDROID_NDK_HOME="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_HOME}"
+          S="$(find . -name build-proot.sh | head -n1)"
+          OUT_DIR="$PWD/jniLibs-out" bash "$S"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jniLibs
+          path: jniLibs-out

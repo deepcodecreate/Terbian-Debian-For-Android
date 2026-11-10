@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2026 deepcodecreate
+  SPDX-License-Identifier: Apache-2.0
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/guiRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/surface"
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <ImageButton
+            android:id="@+id/guiBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/close"
+            android:src="@drawable/ic_back"
+            android:tag="icon"
+            android:tint="@color/fg" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/terbian_gui"
+                android:textColor="@color/fg"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/gui_subtitle"
+                android:textColor="@color/subtle"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/guiPower"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/gui_stop"
+            android:src="@drawable/ic_power"
+            android:tint="@color/danger"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <com.terbian.gui.MaxHeightScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:tag="card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/guiDistroDebian"
+                        style="@style/CursorChip"
+                        android:layout_marginStart="0dp"
+                        android:text="@string/session_type_debian" />
+
+                    <TextView
+                        android:id="@+id/guiDistroUbuntu"
+                        style="@style/CursorChip"
+                        android:layout_marginEnd="0dp"
+                        android:text="@string/session_type_ubuntu" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/statusRootfs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/fg"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/statusDesktop"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/fg"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/statusServer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/fg"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/statusConnection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/fg"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/statusDetail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:textColor="@color/muted"
+                    android:textSize="13sp" />
+
+                <com.terbian.ui.ExpressiveLoadingView
+                    android:id="@+id/guiProgress"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnInstall"
+                style="@style/GuiButton"
+                android:layout_width="match_parent"
+                android:layout_marginTop="16dp"
+                android:tag="primary"
+                android:text="@string/gui_install"
+                android:visibility="gone"
+                app:icon="@drawable/ic_download" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStart"
+                    style="@style/GuiButton"
+                    android:layout_width="0dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:tag="primary"
+                    android:text="@string/gui_start"
+                    app:icon="@drawable/ic_play" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnConnect"
+                    style="@style/GuiButton"
+                    android:layout_width="0dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_weight="1"
+                    android:tag="primary"
+                    android:text="@string/gui_connect"
+                    app:icon="@drawable/ic_desktop" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDisconnect"
+                style="@style/GuiButton"
+                android:layout_width="match_parent"
+                android:layout_marginTop="8dp"
+                android:tag="outline"
+                android:text="@string/gui_disconnect"
+                android:visibility="gone"
+                app:icon="@drawable/ic_link_off" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGuiSettings"
+                style="@style/GuiButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:maxLines="1"
+                android:tag="outline"
+                android:text="@string/gui_connection_settings"
+                app:icon="@drawable/ic_settings" />
+        </LinearLayout>
+    </com.terbian.gui.MaxHeightScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_terminal"
+        android:orientation="vertical"
+        android:tag="terminal">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="4dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
+                android:text="@string/gui_terminal_title"
+                android:textColor="#8A949A"
+                android:textSize="11sp" />
+
+            <ImageButton
+                android:id="@+id/btnClearLog"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/gui_clear_log"
+                android:padding="8dp"
+                android:src="@drawable/ic_close"
+                android:tint="#8A949A" />
+        </LinearLayout>
+
+        <ScrollView
+            android:id="@+id/guiLogScroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fadeScrollbars="false"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="8dp"
+            android:scrollbars="vertical">
+
+            <TextView
+                android:id="@+id/guiLog"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textColor="#C9D1D6"
+                android:textIsSelectable="true"
+                android:textSize="11sp" />
+        </ScrollView>
+    </LinearLayout>
+</LinearLayout>
