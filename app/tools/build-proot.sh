@@ -85,6 +85,9 @@ for ABI in $ABIS; do
   B="$WORK/build-$ABI"; rm -rf "$B"; cp -r "$WORK/proot" "$B"
   CC="$TC/${T}${API}-clang"
   sed -i.bak 's|P_tmpdir|"/data/local/tmp"|g' "$B/src/path/temp.c" || true
+  ASHMEM_SRC="$B/src/extension/ashmem_memfd/ashmem_memfd.c"
+  grep -q '^#include <string.h>' "$ASHMEM_SRC" || sed -i '/^#include <stdlib.h>/a #include <string.h>' "$ASHMEM_SRC"
+
   (
     cd "$B/src"
     export CC LD="$CC" STRIP="$TC/llvm-strip" OBJCOPY="$TC/llvm-objcopy" OBJDUMP="$TC/llvm-objdump" AR="$TC/llvm-ar"
