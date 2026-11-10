@@ -38,8 +38,10 @@ fetch_talloc() {
   [ -f "$dir/lib/libtalloc.a" ] && return
   mkdir -p "$dir/x" && cd "$dir"
   local idx="$TERMUX_REPO/dists/stable/main/binary-$da/Packages"
+  local index_file="$dir/Packages"
   local file
-  file="$(curl -fsSL "$idx" | awk '/^Package: libtalloc-static$/{f=1} f&&/^Filename:/{print $2; exit}')"
+  curl -fsSL "$idx" -o "$index_file"
+  file="$(awk '/^Package: /{f=($0=="Package: libtalloc-static")} f&&/^Filename:/{print $2; exit}' "$index_file")"
   [ -n "$file" ] || { echo "libtalloc-static not found in Termux index ($da)"; exit 1; }
   curl -fsSL "$TERMUX_REPO/$file" -o t.deb
   (cd x && ar x ../t.deb && tar -xf data.tar.* )
