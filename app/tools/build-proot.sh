@@ -33,25 +33,51 @@ debarch() { case "$1" in
   arm64-v8a) echo aarch64;; armeabi-v7a) echo arm;; x86_64) echo x86_64;; x86) echo i686;; esac; }
 
 fetch_talloc() {
-  local abi="$1" da; da="$(debarch "$abi")"
+  local abi="$1"
+  local da
+  da="$(debarch "$abi")"
+
   local dir="$WORK/talloc-$abi"
-  [ -f "$dir/lib/libtalloc.a" ] && return
-  mkdir -p "$dir/x" && cd "$dir"
   local idx="$TERMUX_REPO/dists/stable/main/binary-$da/Packages"
   local index_file="$dir/Packages"
-  local file
-  curl -fsSL "$idx" -o "$index_file"
-  file="$(awk '/^Package: /{f=($0=="Package: libtalloc-static")} f&&/^Filename:/{print $2; exit}' "$index_file")"
-  [ -n "$file" ] || { echo "libtalloc-static not found in Termux index ($da)"; exit 1; }
-  curl -fsSL "$TERMUX_REPO/$file" -o t.deb
-  (cd x && ar x ../t.deb && tar -xf data.tar.* )
-  mkdir -p lib include
-  find x -name 'libtalloc.a' -exec cp {} lib/ \;
-  find x -name 'talloc.h'    -exec cp {} include/ \;
-  [ -f lib/libtalloc.a ] && [ -f include/talloc.h ] || { echo "talloc extraction failed"; exit 1; }
-  cd "$WORK"
-}
+  local static_file
+  local runtime_file
+  local lib_path
+  local header_path
 
+  if [ -f "$dir/lib/libtalloc.a" ] && [ -f "$dir/include/talloc.h" ]; then
+    return
+  fi
+
+  mkdir -p "$dir/lib" "$dir/include"
+
+  curl -fsSL "$idx" -o "$index_file"
+
+  static_file="$(awk '$1=="Package:" {f=($2=="libtalloc-static")} f&&$1=="Filename:" {print $2; exit}' "$index_file")"
+  runtime_file="$(awk '$1=="Package:" {f=($2=="libtalloc")} f&&$1=="Filename:" {print $2; exit}' "$index_file")"
+
+  [ -n "$static_file" ] || { echo "libtalloc-static not found ($da)"; exit 1; }
+  [ -n "$runtime_file" ] || { echo "libtalloc not found ($da)"; exit 1; }
+
+  curl -fsSL "$TERMUX_REPO/$static_file" -o "$dir/static.deb"
+  curl -fsSL "$TERMUX_REPO/$runtime_file" -o "$dir/runtime.deb"
+
+  rm -rf "$dir/static" "$dir/runtime"
+
+  dpkg-deb -x "$dir/static.deb" "$dir/static"
+  dpkg-deb -x "$dir/runtime.deb" "$dir/runtime"
+
+  lib_path="$(find "$dir/static" -name libtalloc.a -print -quit)"
+  header_path="$(find "$dir/runtime" -name talloc.h -print -quit)"
+
+  [ -n "$lib_path" ] || { echo "libtalloc.a missing ($da)"; exit 1; }
+  [ -n "$header_path" ] || { echo "talloc.h missing ($da)"; exit 1; }
+
+  cp -L "$lib_path" "$dir/lib/libtalloc.a"
+  cp -L "$header_path" "$dir/include/talloc.h"
+
+  echo "talloc ready: $abi"
+}
 for ABI in $ABIS; do
   echo "=== $ABI ==="
   T="$(triple "$ABI")"; fetch_talloc "$ABI"
