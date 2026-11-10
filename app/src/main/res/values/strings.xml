@@ -69,6 +69,7 @@
     <string name="repos_mirror_count">%1$d mirrors</string>
     <string name="terminal_color">Terminal color</string>
     <string name="font_size">Font size</string>
+    <string name="font_size">Font size</string>
     <string name="terminal_color_help">Colors apply to the prompt, output, and ANSI text.</string>
     <string name="cursor">Cursor</string>
     <string name="blink_cursor">Blink cursor</string>
