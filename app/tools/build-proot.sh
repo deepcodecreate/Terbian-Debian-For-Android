@@ -88,6 +88,20 @@ for ABI in $ABIS; do
   ASHMEM_SRC="$B/src/extension/ashmem_memfd/ashmem_memfd.c"
   grep -q '^#include <string.h>' "$ASHMEM_SRC" || sed -i '/^#include <stdlib.h>/a #include <string.h>' "$ASHMEM_SRC"
 
+  # Termux's prebuilt libtalloc.a references rep_memset_explicit but does not define it.
+  SHIM_SRC="$B/rep_memset_explicit.c"
+  SHIM_OBJ="$B/rep_memset_explicit.o"
+  cat > "$SHIM_SRC" <<'EOF'
+#include <stddef.h>
+void *rep_memset_explicit(void *s, int c, size_t n)
+{
+    volatile unsigned char *p = (volatile unsigned char *)s;
+    while (n--) *p++ = (unsigned char)c;
+    return s;
+}
+EOF
+  "$CC" -O2 -c "$SHIM_SRC" -o "$SHIM_OBJ"
+
   (
     cd "$B/src"
     export CC LD="$CC" STRIP="$TC/llvm-strip" OBJCOPY="$TC/llvm-objcopy" OBJDUMP="$TC/llvm-objdump" AR="$TC/llvm-ar"
@@ -97,7 +111,7 @@ for ABI in $ABIS; do
     export PKG_CONFIG=false
     make V=1 -j"$(nproc 2>/dev/null || echo 4)" \
          CC="$CC" LD="$CC" STRIP="$STRIP" OBJCOPY="$OBJCOPY" OBJDUMP="$OBJDUMP" \
-         CFLAGS="$CFLAGS" CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS $TD/lib/libtalloc.a" \
+         CFLAGS="$CFLAGS" CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS $SHIM_OBJ $TD/lib/libtalloc.a" \
          proot
   )
   mkdir -p "$OUT/$ABI"
