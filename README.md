@@ -4,6 +4,8 @@ Terbian is an open-source Debian terminal environment for Android, inspired by T
 
 Designed for developers, Linux enthusiasts, and power users, Terbian combines a modern Material 3 interface with persistent terminal sessions, customizable themes, and a portable Debian environment.
 
+[![Get it in Lumen Store](https://deepcodecreate.github.io/lumenstore/badges/lumen-store.svg)](https://deepcodecreate.github.io/lumenstore/app.html?id=com.terbian)
+
 Features
 
 - Debian on Android — Run Debian 12 in a PRoot environment without root access.
