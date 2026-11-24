@@ -598,7 +598,7 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
                 sessionPager.setLayoutParams(m);
             }
         }
-        sessionPager.setBackgroundColor(palette.background);
+        sessionPager.setBackgroundColor(com.terbian.prefs.AppSettings.currentTheme(this).backgroundColor);
         sessionPager.setOutlineProvider(new ViewOutlineProvider() {
             @Override
             public void getOutline(View view, Outline outline) {

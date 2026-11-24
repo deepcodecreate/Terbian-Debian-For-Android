@@ -61,7 +61,7 @@ public final class Appearance {
     }
 
     public static ColorSource colorSource(Context c) {
-        return readEnum(c, K_SOURCE, ColorSource.class, ColorSource.WALLPAPER);
+        return readEnum(c, K_SOURCE, ColorSource.class, ColorSource.TERMINAL);
     }
 
     public static void setColorSource(Context c, ColorSource v) {
