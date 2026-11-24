@@ -21,8 +21,8 @@ if (keystorePropsFile.exists()) {
 
 val abiSelection = (project.findProperty("onlyAbi") as String?)?.trim()?.takeIf { it.isNotEmpty() }
 val allAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
-val appVersionName = (project.findProperty("appVersionName") as String?) ?: "2.5.0"
-val appVersionCode = (project.findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 3
+val appVersionName = (project.findProperty("appVersionName") as String?) ?: "2.5.1"
+val appVersionCode = (project.findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 20501
 
 val rootfsArchs = (project.findProperty("rootfsArch") ?: "arm64v8").toString()
     .split(",").map { it.trim() }.filter { it.isNotEmpty() }

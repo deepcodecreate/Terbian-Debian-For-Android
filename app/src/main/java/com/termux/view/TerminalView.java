@@ -536,6 +536,10 @@ public class TerminalView extends View {
     if (mEmulator == null) return true;
     final int action = event.getAction();
 
+    if (event.getPointerCount() > 1 && getParent() != null) {
+      getParent().requestDisallowInterceptTouchEvent(true);
+    }
+
     if (isSelectingText()) {
       updateFloatingToolbarVisibility(event);
       mGestureRecognizer.onTouchEvent(event);

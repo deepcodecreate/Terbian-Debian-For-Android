@@ -115,9 +115,28 @@ jobs:
               exit 1
             fi
           done
-          printf '%s' "$KEYSTORE_BASE64" | base64 -d > release.keystore
-          printf 'storeFile=release.keystore\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
-            "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > release.properties
+          printf '%s' "$KEYSTORE_BASE64" | tr -d ' \r\n' | base64 -d > release.keystore
+          export KEYSTORE_PASSWORD="$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n')"
+          export KEY_ALIAS="$(printf '%s' "$KEY_ALIAS" | tr -d '\r\n')"
+          export KEY_PASSWORD="$(printf '%s' "$KEY_PASSWORD" | tr -d '\r\n')"
+          if ! keytool -list -keystore release.keystore -storepass:env KEYSTORE_PASSWORD > keytool.out 2>&1; then
+            cat keytool.out
+            echo "::error::Cannot open the keystore. KEYSTORE_BASE64 is damaged or KEYSTORE_PASSWORD is wrong"
+            exit 1
+          fi
+          if ! grep -q -i -F "$KEY_ALIAS," keytool.out; then
+            cat keytool.out
+            echo "::error::KEY_ALIAS was not found in the keystore. Use one of the aliases listed above"
+            exit 1
+          fi
+          esc() { printf '%s' "$1" | sed 's/\\/\\\\/g'; }
+          {
+            echo "storeFile=release.keystore"
+            echo "storePassword=$(esc "$KEYSTORE_PASSWORD")"
+            echo "keyAlias=$(esc "$KEY_ALIAS")"
+            echo "keyPassword=$(esc "$KEY_PASSWORD")"
+          } > release.properties
+          rm -f keytool.out
       - name: Accept SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - name: Build APK
@@ -145,6 +164,10 @@ jobs:
     needs: [meta, apk]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.meta.outputs.tag }}
+          path: src
       - uses: actions/download-artifact@v4
         with:
           pattern: apk-*
@@ -156,13 +179,22 @@ jobs:
           TAG: ${{ needs.meta.outputs.tag }}
           REPO: ${{ github.repository }}
         run: |
+          NOTES="$PWD/src/.github/release-notes/$TAG.md"
           cd dist
           sha256sum *.apk > SHA256SUMS.txt
           ls -lh
+          if [ -f "$NOTES" ]; then
+            NOTE_ARGS=(--notes-file "$NOTES")
+          else
+            NOTE_ARGS=(--generate-notes)
+          fi
           if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
             gh release upload "$TAG" ./* --repo "$REPO" --clobber
+            if [ -f "$NOTES" ]; then
+              gh release edit "$TAG" --repo "$REPO" --notes-file "$NOTES"
+            fi
           else
-            FLAGS=""
-            case "$TAG" in *-*) FLAGS="--prerelease";; esac
-            gh release create "$TAG" ./* --repo "$REPO" --title "Terbian $TAG" --generate-notes --verify-tag $FLAGS
+            FLAGS=()
+            case "$TAG" in *-*) FLAGS=(--prerelease);; esac
+            gh release create "$TAG" ./* --repo "$REPO" --title "Terbian $TAG" "${NOTE_ARGS[@]}" "${FLAGS[@]}" --verify-tag
           fi

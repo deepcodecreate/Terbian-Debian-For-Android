@@ -39,8 +39,9 @@ public class TerbianTerminalViewClient implements TerminalViewClient {
     @Override
     public float onScale(float scale) {
         float current = AppSettings.fontSizeSp(context);
+        float boosted = (float) Math.pow(scale, 1.6);
         float target = Math.max(TerbianTerminalView.MIN_FONT_SP,
-                Math.min(TerbianTerminalView.MAX_FONT_SP, current * scale));
+                Math.min(TerbianTerminalView.MAX_FONT_SP, current * boosted));
         float snapped = Math.round(target * 2f) / 2f;
         if (snapped != current) {
             view.setFontSizeSp(snapped);
