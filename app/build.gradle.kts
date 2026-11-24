@@ -19,6 +19,22 @@ if (keystorePropsFile.exists()) {
     }
 }
 
+val abiSelection = (project.findProperty("onlyAbi") as String?)?.trim()?.takeIf { it.isNotEmpty() }
+val allAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+val appVersionName = (project.findProperty("appVersionName") as String?) ?: "2.5.0"
+val appVersionCode = (project.findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 3
+
+val rootfsArchs = (project.findProperty("rootfsArch") ?: "arm64v8").toString()
+    .split(",").map { it.trim() }.filter { it.isNotEmpty() }
+
+fun abiOfRootfsArch(arch: String): String = when (arch) {
+    "arm64v8" -> "arm64-v8a"
+    "arm32v7" -> "armeabi-v7a"
+    "amd64" -> "x86_64"
+    "i386" -> "x86"
+    else -> throw GradleException("Unsupported rootfsArch '$arch' (use arm64v8, arm32v7, amd64, i386)")
+}
+
 val hasValidSigningProps =
     keystorePropsFile.exists() &&
             listOf(
@@ -90,9 +106,9 @@ android {
 
         targetSdk = 36
 
-        versionCode = 3
+        versionCode = appVersionCode
 
-        versionName = "2.5.0"
+        versionName = appVersionName
 
         vectorDrawables {
             useSupportLibrary = true
@@ -109,18 +125,13 @@ android {
 
     splits {
         abi {
-            isEnable = true
+            isEnable = abiSelection != "universal"
 
             reset()
 
-            include(
-                "arm64-v8a",
-                "armeabi-v7a",
-                "x86_64",
-                "x86"
-            )
+            include(*(if (abiSelection == null || abiSelection == "universal") allAbis else listOfNotNull(abiSelection)).toTypedArray())
 
-            isUniversalApk = true
+            isUniversalApk = abiSelection == null
         }
     }
 
@@ -265,7 +276,7 @@ val buildProot = tasks.register("buildProot") {
     group = "terbian"
     description = "Builds termux/proot with the Android NDK into src/main/jniLibs (skips if impossible)"
     doLast {
-        if (project.hasProperty("skipNative")) return@doLast
+        if (project.hasProperty("skipNative") || project.hasProperty("skipProot")) return@doLast
         val done = File(nativeWork, "proot.done")
         if (done.exists() && !project.hasProperty("forceProot")) return@doLast
         val ndk = try { android.ndkDirectory.absolutePath } catch (e: Throwable) { System.getenv("ANDROID_NDK_HOME") ?: "" }
@@ -296,89 +307,95 @@ val buildProot = tasks.register("buildProot") {
 
 val fetchRootfs = tasks.register("fetchRootfs") {
     group = "terbian"
-    description = "Downloads the official Debian 12 rootfs into src/main/assets/debian/rootfs.tb"
+    description = "Downloads the official Debian 12 rootfs for every selected architecture into src/main/assets/debian/<abi>/rootfs.tb"
     doLast {
         if (project.hasProperty("skipNative")) return@doLast
-        val dest = file("src/main/assets/debian/rootfs.tb")
-        if (dest.exists() && dest.length() > 1_000_000) return@doLast
-        val arch = (project.findProperty("rootfsArch") ?: "arm64v8").toString()
-        val url = "https://github.com/debuerreotype/docker-debian-artifacts/raw/refs/heads/dist-$arch/bookworm/slim/oci/blobs/rootfs.tar.gz"
-        try {
-            logger.lifecycle("[terbian] downloading Debian 12 rootfs ($arch) ...")
-            dest.parentFile.mkdirs()
-            val tmp = File(dest.parentFile, "rootfs.tb.part")
-            URI(url).toURL().openStream().use { i -> tmp.outputStream().use { o -> i.copyTo(o) } }
-            if (tmp.length() < 1_000_000) { tmp.delete(); throw GradleException("download too small") }
-            tmp.renameTo(dest)
-        } catch (e: Exception) {
-            logger.warn("[terbian] rootfs download failed (${e.message}). Put your own tar.gz at " +
-                "src/main/assets/debian/rootfs.tb (URL: $url)")
+        for (arch in rootfsArchs) {
+            val dest = file("src/main/assets/debian/${abiOfRootfsArch(arch)}/rootfs.tb")
+            if (dest.exists() && dest.length() > 1_000_000) continue
+            val url = "https://github.com/debuerreotype/docker-debian-artifacts/raw/refs/heads/dist-$arch/bookworm/slim/oci/blobs/rootfs.tar.gz"
+            try {
+                logger.lifecycle("[terbian] downloading Debian 12 rootfs ($arch) ...")
+                dest.parentFile.mkdirs()
+                val tmp = File(dest.parentFile, "rootfs.tb.part")
+                URI(url).toURL().openStream().use { i -> tmp.outputStream().use { o -> i.copyTo(o) } }
+                if (tmp.length() < 1_000_000) { tmp.delete(); throw GradleException("download too small") }
+                tmp.renameTo(dest)
+            } catch (e: Exception) {
+                logger.warn("[terbian] rootfs download failed (${e.message}). Put your own tar.gz at " +
+                    "${dest.relativeTo(projectDir)} (URL: $url)")
+            }
         }
     }
 }
 
 val fetchUbuntuRootfs = tasks.register("fetchUbuntuRootfs") {
     group = "terbian"
-    description = "Downloads a compact Ubuntu base rootfs into src/main/assets/ubuntu/rootfs.tbo"
+    description = "Downloads a compact Ubuntu base rootfs for every selected architecture into src/main/assets/ubuntu/<abi>/rootfs.tbo"
     doLast {
         if (project.hasProperty("skipNative")) return@doLast
-        val dest = file("src/main/assets/ubuntu/rootfs.tbo")
-        if (dest.exists() && dest.length() > 1_000_000) return@doLast
+        for (rootfsArch in rootfsArchs) {
+            val dest = file("src/main/assets/ubuntu/${abiOfRootfsArch(rootfsArch)}/rootfs.tbo")
+            if (dest.exists() && dest.length() > 1_000_000) continue
 
-        // Same -ProotfsArch values as the Debian rootfs: arm64v8 (default), arm32v7, amd64
-        val arch = when (val a = (project.findProperty("rootfsArch") ?: "arm64v8").toString()) {
-            "arm64v8" -> "arm64"
-            "arm32v7" -> "armhf"
-            else -> a
-        }
-        val release = (project.findProperty("ubuntuRelease") ?: "24.04").toString()
-        val dir = "https://cdimage.ubuntu.com/ubuntu-base/releases/$release/release/"
-        var url = project.findProperty("ubuntuUrl")?.toString()
-        try {
-            var sha: String? = null
-            if (url == null) {
-                // Pick the newest point release (24.04.3 > 24.04.2 > 24.04) that exists for this CPU.
-                val listing = URI(dir).toURL().readText()
-                val rx = Regex("ubuntu-base-" + Regex.escape(release) + "(\\.\\d+)?-base-" + arch + "\\.tar\\.gz")
-                val name = rx.findAll(listing).map { it.value }.distinct().maxByOrNull { n ->
-                    Regex("ubuntu-base-([\\d.]+)-base").find(n)!!.groupValues[1]
-                        .split('.').joinToString(".") { it.padStart(5, '0') }
-                } ?: throw GradleException("no ubuntu-base $release $arch image at $dir")
-                url = dir + name
-                try {
-                    sha = URI(dir + "SHA256SUMS").toURL().readText().lineSequence()
-                        .map { it.trim().split(Regex("\\s+\\*?")) }
-                        .firstOrNull { it.size == 2 && it[1] == name }?.get(0)
-                } catch (e: Exception) {
-                    logger.warn("[terbian] cannot read SHA256SUMS (${e.message}), download will not be verified")
-                }
+            val arch = when (rootfsArch) {
+                "arm64v8" -> "arm64"
+                "arm32v7" -> "armhf"
+                "amd64" -> "amd64"
+                else -> null
             }
-            logger.lifecycle("[terbian] downloading Ubuntu $release rootfs ($arch): $url")
-            dest.parentFile.mkdirs()
-            val tmp = File(dest.parentFile, "rootfs.tbo.part")
-            val md = MessageDigest.getInstance("SHA-256")
-            URI(url).toURL().openStream().use { i ->
-                tmp.outputStream().use { o ->
-                    val buf = ByteArray(64 * 1024)
-                    while (true) {
-                        val n = i.read(buf)
-                        if (n < 0) break
-                        o.write(buf, 0, n)
-                        md.update(buf, 0, n)
+            if (arch == null) {
+                logger.warn("[terbian] Ubuntu has no base image for '$rootfsArch', skipping")
+                continue
+            }
+            val release = (project.findProperty("ubuntuRelease") ?: "24.04").toString()
+            val dir = "https://cdimage.ubuntu.com/ubuntu-base/releases/$release/release/"
+            var url = project.findProperty("ubuntuUrl")?.toString()
+            try {
+                var sha: String? = null
+                if (url == null) {
+                    val listing = URI(dir).toURL().readText()
+                    val rx = Regex("ubuntu-base-" + Regex.escape(release) + "(\\.\\d+)?-base-" + arch + "\\.tar\\.gz")
+                    val name = rx.findAll(listing).map { it.value }.distinct().maxByOrNull { n ->
+                        Regex("ubuntu-base-([\\d.]+)-base").find(n)!!.groupValues[1]
+                            .split('.').joinToString(".") { it.padStart(5, '0') }
+                    } ?: throw GradleException("no ubuntu-base $release $arch image at $dir")
+                    url = dir + name
+                    try {
+                        sha = URI(dir + "SHA256SUMS").toURL().readText().lineSequence()
+                            .map { it.trim().split(Regex("\\s+\\*?")) }
+                            .firstOrNull { it.size == 2 && it[1] == name }?.get(0)
+                    } catch (e: Exception) {
+                        logger.warn("[terbian] cannot read SHA256SUMS (${e.message}), download will not be verified")
                     }
                 }
+                logger.lifecycle("[terbian] downloading Ubuntu $release rootfs ($arch): $url")
+                dest.parentFile.mkdirs()
+                val tmp = File(dest.parentFile, "rootfs.tbo.part")
+                val md = MessageDigest.getInstance("SHA-256")
+                URI(url).toURL().openStream().use { i ->
+                    tmp.outputStream().use { o ->
+                        val buf = ByteArray(64 * 1024)
+                        while (true) {
+                            val n = i.read(buf)
+                            if (n < 0) break
+                            o.write(buf, 0, n)
+                            md.update(buf, 0, n)
+                        }
+                    }
+                }
+                if (tmp.length() < 1_000_000) { tmp.delete(); throw GradleException("download too small") }
+                val head = tmp.inputStream().use { it.read() to it.read() }
+                if (head.first != 0x1f || head.second != 0x8b) { tmp.delete(); throw GradleException("not a gzip file") }
+                val actual = md.digest().joinToString("") { "%02x".format(it) }
+                if (sha != null && !sha.equals(actual, ignoreCase = true)) {
+                    tmp.delete(); throw GradleException("SHA-256 mismatch (expected $sha, got $actual)")
+                }
+                tmp.renameTo(dest)
+            } catch (e: Exception) {
+                logger.warn("[terbian] Ubuntu rootfs download failed (${e.message}). Put your own tar.gz at " +
+                    "${dest.relativeTo(projectDir)} (e.g. ubuntu-base-*-base-$arch.tar.gz from $dir)")
             }
-            if (tmp.length() < 1_000_000) { tmp.delete(); throw GradleException("download too small") }
-            val head = tmp.inputStream().use { it.read() to it.read() }
-            if (head.first != 0x1f || head.second != 0x8b) { tmp.delete(); throw GradleException("not a gzip file") }
-            val actual = md.digest().joinToString("") { "%02x".format(it) }
-            if (sha != null && !sha.equals(actual, ignoreCase = true)) {
-                tmp.delete(); throw GradleException("SHA-256 mismatch (expected $sha, got $actual)")
-            }
-            tmp.renameTo(dest)
-        } catch (e: Exception) {
-            logger.warn("[terbian] Ubuntu rootfs download failed (${e.message}). Put your own tar.gz at " +
-                "src/main/assets/ubuntu/rootfs.tbo (e.g. ubuntu-base-*-base-$arch.tar.gz from $dir)")
         }
     }
 }

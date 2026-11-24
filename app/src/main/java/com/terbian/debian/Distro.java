@@ -21,18 +21,28 @@ import android.content.Context;
 import java.io.File;
 
 public enum Distro {
-    DEBIAN("debian", "Debian", "debian/rootfs.tb"),
-    UBUNTU("ubuntu", "Ubuntu", "ubuntu/rootfs.tbo");
+    DEBIAN("debian", "Debian", "rootfs.tb"),
+    UBUNTU("ubuntu", "Ubuntu", "rootfs.tbo");
 
     public final String id;
     public final String label;
 
-    public final String assetPath;
+    private final String assetName;
 
-    Distro(String id, String label, String assetPath) {
+    Distro(String id, String label, String assetName) {
         this.id = id;
         this.label = label;
-        this.assetPath = assetPath;
+        this.assetName = assetName;
+    }
+
+    public String assetPath() {
+        String abi = ArchitectureDetector.getAbi();
+
+        if ("armeabi".equals(abi)) {
+            abi = "armeabi-v7a";
+        }
+
+        return id + "/" + abi + "/" + assetName;
     }
 
     public File baseDir(Context context) {

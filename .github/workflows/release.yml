@@ -1,0 +1,168 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '[0-9]*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and release
+        required: true
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      name: ${{ steps.v.outputs.name }}
+      code: ${{ steps.v.outputs.code }}
+    steps:
+      - id: v
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+          RUN: ${{ github.run_number }}
+        run: |
+          NAME="${TAG#v}"
+          if [[ "$NAME" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            CODE=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + BASH_REMATCH[3] ))
+          else
+            CODE="$RUN"
+          fi
+          {
+            echo "tag=$TAG"
+            echo "name=$NAME"
+            echo "code=$CODE"
+          } >> "$GITHUB_OUTPUT"
+
+  native:
+    needs: meta
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [arm64-v8a, armeabi-v7a, x86_64, x86]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.meta.outputs.tag }}
+      - name: Build native libraries
+        env:
+          ABIS: ${{ matrix.abi }}
+        run: bash app/tools/build-native.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jnilibs-${{ matrix.abi }}
+          path: app/src/main/jniLibs
+          retention-days: 1
+
+  apk:
+    needs: [meta, native]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: arm64-v8a
+            libs: arm64-v8a
+            rootfs: arm64v8
+          - target: armeabi-v7a
+            libs: armeabi-v7a
+            rootfs: arm32v7
+          - target: x86_64
+            libs: x86_64
+            rootfs: amd64
+          - target: x86
+            libs: x86
+            rootfs: i386
+          - target: universal
+            libs: '*'
+            rootfs: arm64v8,arm32v7,amd64,i386
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.meta.outputs.tag }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: jnilibs-${{ matrix.libs }}
+          path: app/src/main/jniLibs
+          merge-multiple: true
+      - name: Prepare signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Repository secret $v is not set (Settings > Secrets and variables > Actions)"
+              exit 1
+            fi
+          done
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > release.keystore
+          printf 'storeFile=release.keystore\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > release.properties
+      - name: Accept SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - name: Build APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleRelease \
+            -PskipProot \
+            -ProotfsArch=${{ matrix.rootfs }} \
+            -PonlyAbi=${{ matrix.target }} \
+            -PappVersionName=${{ needs.meta.outputs.name }} \
+            -PappVersionCode=${{ needs.meta.outputs.code }}
+      - name: Collect APK
+        run: |
+          mkdir -p dist
+          APK="$(find app/build/outputs/apk/release -name '*.apk' | head -n1)"
+          test -n "$APK"
+          cp "$APK" "dist/Terbian-${{ needs.meta.outputs.name }}-${{ matrix.target }}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ matrix.target }}
+          path: dist
+          retention-days: 1
+
+  publish:
+    needs: [meta, apk]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: apk-*
+          path: dist
+          merge-multiple: true
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          cd dist
+          sha256sum *.apk > SHA256SUMS.txt
+          ls -lh
+          if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
+            gh release upload "$TAG" ./* --repo "$REPO" --clobber
+          else
+            FLAGS=""
+            case "$TAG" in *-*) FLAGS="--prerelease";; esac
+            gh release create "$TAG" ./* --repo "$REPO" --title "Terbian $TAG" --generate-notes --verify-tag $FLAGS
+          fi

@@ -143,9 +143,9 @@ public class RootfsInstaller {
 
     private InputStream openRootfsAsset() throws IOException {
         try {
-            return context.getAssets().open(distro.assetPath);
+            return context.getAssets().open(distro.assetPath());
         } catch (java.io.FileNotFoundException e) {
-            throw new IOException(distro.label + " rootfs archive (" + distro.assetPath
+            throw new IOException(distro.label + " rootfs archive (" + distro.assetPath()
                     + ") is not part of this build. Rebuild the app so Gradle can download it.", e);
         }
     }
