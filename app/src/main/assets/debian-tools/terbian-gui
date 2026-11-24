@@ -110,6 +110,44 @@ stop_display() {
   [ -n "${spid:-}" ] && kill -KILL -- "-$spid" 2>/dev/null || true
   rm -f "$sp" "/tmp/.X$d-lock" "/tmp/.X11-unix/X$d" "$(marker "$d")" "$HOME/.vnc/Xauthority-$d"
 }
+wait_port() {
+  local port="$1" i
+  for i in $(seq 1 120); do
+    if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then return 0; fi
+    sleep 0.5
+  done
+  return 1
+}
+session_ready() {
+  local d="$1" f p
+  for f in /proc/[0-9]*/comm; do
+    [ "$(cat "$f" 2>/dev/null)" = xfwm4 ] || continue
+    p="${f#/proc/}"; p="${p%/comm}"
+    if tr '\0' '\n' < "/proc/$p/environ" 2>/dev/null | grep -qx "DISPLAY=:$d"; then return 0; fi
+  done
+  return 1
+}
+wait_session() {
+  local d="$1" sp spid="" i
+  sp=$(session_pidfile "$d")
+  if [ -r "$sp" ]; then spid=$(tr -d ' \n' < "$sp"); fi
+  for i in $(seq 1 300); do
+    if session_ready "$d"; then
+      echo "TERBIAN_DESKTOP_READY"
+      return 0
+    fi
+    if [ -n "$spid" ] && ! pid_alive "$spid"; then
+      echo "The desktop session stopped while starting. Log:"
+      tail -n 25 "$HOME/.vnc/terbian-session-$d.log" 2>/dev/null || true
+      echo "TERBIAN_DESKTOP_FAILED"
+      return 1
+    fi
+    if [ $((i % 30)) -eq 0 ]; then echo "[terbian-gui] the desktop session is still loading ($((i / 2)) s) ..."; fi
+    sleep 0.5
+  done
+  echo "TERBIAN_DESKTOP_SLOW"
+  return 0
+}
 start_direct() {
   local d="$1" geo="$2" log auth cookie xpid i
   log="$HOME/.vnc/terbian:$d.log"
@@ -127,7 +165,7 @@ start_direct() {
     -rfbport "$((5900 + d))" -rfbauth "$HOME/.vnc/passwd" -SecurityTypes VncAuth \
     -desktop "terbian:$d ($TB_ID)" -auth "$auth" -AlwaysShared >"$log" 2>&1 </dev/null &
   xpid=$!
-  for i in $(seq 1 60); do
+  for i in $(seq 1 180); do
     [ -S "/tmp/.X11-unix/X$d" ] && break
     if ! pid_alive "$xpid"; then
       echo "Xtigervnc stopped right after starting. Log ($log):"
@@ -138,12 +176,18 @@ start_direct() {
     sleep 0.5
   done
   if [ ! -S "/tmp/.X11-unix/X$d" ]; then
-    echo "Xtigervnc did not open display :$d within 30 s. Log ($log):"
+    echo "Xtigervnc did not open display :$d within 90 s. Log ($log):"
     tail -n 20 "$log"
     kill_wait "$xpid"
     exit 1
   fi
   echo "$TB_ID $xpid" > "$(marker "$d")"
+  if ! wait_port "$((5900 + d))"; then
+    echo "Xtigervnc did not open its VNC port. Log ($log):"
+    tail -n 20 "$log"
+    kill_wait "$xpid"
+    exit 1
+  fi
   echo "[terbian-gui] starting the desktop session"
   DISPLAY=":$d" XAUTHORITY="$auth" nohup setsid "$HOME/.vnc/xstartup" \
     >"$HOME/.vnc/terbian-session-$d.log" 2>&1 </dev/null &
@@ -159,7 +203,12 @@ N="${DISPLAY##*:}"; N="${N%%.*}"
 export XDG_RUNTIME_DIR="/tmp/runtime-root-${N:-1}"; mkdir -p "$XDG_RUNTIME_DIR"; chmod 700 "$XDG_RUNTIME_DIR"
 export LIBGL_ALWAYS_SOFTWARE=1
 [ -s /etc/machine-id ] || dbus-uuidgen --ensure 2>/dev/null
-exec dbus-launch --exit-with-session startxfce4
+START=$(date +%s)
+if command -v dbus-launch >/dev/null 2>&1; then
+  dbus-launch --exit-with-session startxfce4 && exit 0
+fi
+[ $(( $(date +%s) - START )) -lt 20 ] || exit 0
+exec startxfce4
 XS
   chmod +x "$HOME/.vnc/xstartup"
 }
@@ -242,6 +291,7 @@ case "${1:-help}" in
       vncserver ":$DISP" -geometry "$GEO" -depth 24 -localhost yes </dev/null
       record_display "$DISP"
     fi
+    wait_session "$DISP" || exit 1
     echo "Connect a VNC viewer to 127.0.0.1:$PORT"
     ;;
   stop)

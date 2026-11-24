@@ -31,7 +31,6 @@
     <string name="grp_behavior_sub">Keys, feedback, default terminal</string>
     <string name="grp_data">Data and info</string>
     <string name="grp_data_sub">Repositories, version, GitHub</string>
-    <string name="app_version" translatable="false">2.5.0</string>
     <string name="info_version">Version</string>
     <string name="info_github">GitHub</string>
     <string name="info_github_handle">\@deepcodecreate</string>
@@ -96,6 +95,7 @@
     <string name="session_type_shell_desc">Android shell with adb, Unix tools and su</string>
     <string name="session_type_root">Root shell</string>
     <string name="session_type_root_desc">Superuser shell through su</string>
+    <string name="root_shell_failed">Root access was refused or timed out. Allow Terbian in your root manager (Magisk, KernelSU or APatch), then open a new Root shell.</string>
     <string name="session_type_root_desc_missing">Needs a rooted device (no su found here)</string>
 
     <string name="paste_text">Paste</string>

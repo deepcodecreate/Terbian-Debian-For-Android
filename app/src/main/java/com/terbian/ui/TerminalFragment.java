@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -58,6 +59,7 @@ public class TerminalFragment extends Fragment {
     private TerminalViewModel viewModel;
     private SessionsViewModel sessionsViewModel;
     private String sessionId;
+    private SessionType sessionType;
 
     @Nullable
     @Override
@@ -73,6 +75,7 @@ public class TerminalFragment extends Fragment {
         sessionId = requireArguments().getString(ARG_SESSION_ID);
         String title = requireArguments().getString(ARG_SESSION_TITLE);
         SessionType type = SessionType.fromName(requireArguments().getString(ARG_SESSION_TYPE));
+        sessionType = type;
 
         terminalView = view.findViewById(R.id.terminalView);
         terminalView.setCustomTypeFace(Typeface.MONOSPACE);
@@ -155,6 +158,13 @@ public class TerminalFragment extends Fragment {
 
         @Override
         public void onSessionFinished(@NonNull TerminalSession finishedSession) {
+            if (sessionType == SessionType.ROOT && finishedSession.getExitStatus() != 0
+                    && viewModel != null && viewModel.ageMs() < 15000) {
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), R.string.root_shell_failed, Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
             if (viewModel != null) {
                 viewModel.reportFinished();
             }

@@ -42,7 +42,8 @@ import android.app.ActivityManager;
 
 public final class TerbianDesktopManager {
     public static final String DESKTOP_SESSION_ID = "terbian-gui-desktop";
-    private static final int READY_TIMEOUT_MS = 45_000;
+    private static final int READY_TIMEOUT_MS = 120_000;
+    private static final int SESSION_TIMEOUT_MS = 200_000;
     private static final long STOP_TIMEOUT_S = 20;
     private static final long EXTRAS_TIMEOUT_S = 600;
 
@@ -311,7 +312,9 @@ public final class TerbianDesktopManager {
                         + " did not come up in " + (READY_TIMEOUT_MS / 1000) + "s.\n" + guest.tail());
             }
 
-            Thread.sleep(1200);
+            append("Waiting for the desktop session to finish loading...\n");
+            awaitSession(guest);
+            Thread.sleep(600);
         } catch (Exception e) {
             synchronized (stateLock) {
                 hosted.remove(display);
@@ -530,6 +533,23 @@ public final class TerbianDesktopManager {
                             + tail);
         }
         append("VNC server is ready on 127.0.0.1:5901.\n");
+    }
+
+    private void awaitSession(GuestRunner.RunningGuest guest) throws Exception {
+        long deadline = System.currentTimeMillis() + SESSION_TIMEOUT_MS;
+        while (System.currentTimeMillis() < deadline) {
+            String tail = guest.tail();
+            if (tail.contains("TERBIAN_DESKTOP_FAILED")) {
+                throw new IllegalStateException("The desktop session did not start.\n" + tail);
+            }
+            if (tail.contains("TERBIAN_DESKTOP_READY") || tail.contains("TERBIAN_DESKTOP_SLOW")) {
+                return;
+            }
+            if (!guest.isAlive()) {
+                throw new IllegalStateException("Desktop process exited early.\n" + tail);
+            }
+            Thread.sleep(400);
+        }
     }
 
     public void stop(Context context, Distro distro) throws Exception {

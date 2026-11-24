@@ -200,6 +200,10 @@ public class VncViewerActivity extends BaseActivity implements VncSession.Listen
     public void onPhase(VncSession.Phase phase, String detail) {
         if (isDestroyed()) return;
         viewerStatus.setText(detail);
+        if (phase == VncSession.Phase.CONNECTED) {
+            session.markAllDirty();
+            onFrame();
+        }
         if (phase == VncSession.Phase.FAILED) {
             Toast.makeText(this, detail, Toast.LENGTH_LONG).show();
         }

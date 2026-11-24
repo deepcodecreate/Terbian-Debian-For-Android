@@ -37,6 +37,8 @@ final class PhantomGuard {
         }
         String su = AndroidShell.findSu();
         if (su == null) {
+            log.accept("Android 12 and newer may stop the desktop's background processes. If the desktop closes by itself, "
+                    + "turn on Developer options > Disable child process restrictions.\n");
             return;
         }
         String script = "device_config set_sync_disabled_for_tests persistent; "

@@ -113,6 +113,103 @@ public final class ThemedMenu {
         animateIn(scroll, items, anchor);
     }
 
+    public static void showDetailed(View anchor, ThemePalette p, List<String> titles, List<String> details,
+                                    boolean monoDetails, int accentIndex, IntConsumer onPick, IntConsumer onLongPick) {
+        Context context = anchor.getContext();
+        float density = context.getResources().getDisplayMetrics().density;
+        int screenWidth = context.getResources().getDisplayMetrics().widthPixels;
+        int width = Math.min(Math.round(300 * density), screenWidth - Math.round(32 * density));
+
+        LinearLayout menu = new LinearLayout(context);
+        menu.setOrientation(LinearLayout.VERTICAL);
+        int pad = Math.round(6 * density);
+        menu.setPadding(pad, pad, pad, pad);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(p.surfaceHigh);
+        bg.setCornerRadius(Shapes.radius(context, Shapes.LARGE));
+        menu.setBackground(bg);
+
+        ScrollView scroll = new ScrollView(context);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.addView(menu, new ScrollView.LayoutParams(width, ScrollView.LayoutParams.WRAP_CONTENT));
+
+        PopupWindow[] holder = new PopupWindow[1];
+        java.util.ArrayList<View> items = new java.util.ArrayList<>();
+        for (int i = 0; i < titles.size(); i++) {
+            final int index = i;
+            LinearLayout item = new LinearLayout(context);
+            item.setOrientation(LinearLayout.VERTICAL);
+            item.setGravity(Gravity.CENTER_VERTICAL);
+            item.setMinimumHeight(Math.round(52 * density));
+            int h = Math.round(14 * density);
+            int v = Math.round(8 * density);
+            item.setPadding(h, v, h, v);
+
+            TextView title = new TextView(context);
+            title.setText(titles.get(i));
+            title.setTextSize(14);
+            title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            title.setTextColor(i == accentIndex ? p.primary : p.foreground);
+            title.setSingleLine(true);
+            title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            item.addView(title);
+
+            String detail = details == null || i >= details.size() ? null : details.get(i);
+            if (detail != null && !detail.isEmpty()) {
+                TextView sub = new TextView(context);
+                sub.setText(detail);
+                sub.setTextSize(12);
+                sub.setTextColor(p.subtle);
+                if (monoDetails) {
+                    sub.setTypeface(Typeface.MONOSPACE);
+                    sub.setSingleLine(true);
+                } else {
+                    sub.setMaxLines(2);
+                }
+                sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                sub.setPadding(0, Math.round(2 * density), 0, 0);
+                item.addView(sub);
+            }
+
+            GradientDrawable shape = new GradientDrawable();
+            shape.setCornerRadius(Shapes.radius(context, Shapes.MEDIUM));
+            shape.setColor(0xFFFFFFFF);
+            item.setBackground(new RippleDrawable(
+                    ColorStateList.valueOf(ThemePalette.withAlpha(p.primary, 60)), null, shape));
+            item.setOnClickListener(view -> {
+                Motion.haptic(view);
+                holder[0].dismiss();
+                onPick.accept(index);
+            });
+            if (onLongPick != null) {
+                item.setOnLongClickListener(view -> {
+                    Motion.haptic(view);
+                    holder[0].dismiss();
+                    onLongPick.accept(index);
+                    return true;
+                });
+            }
+            items.add(item);
+            menu.addView(item, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        }
+
+        int maxHeight = Math.round(context.getResources().getDisplayMetrics().heightPixels * 0.6f);
+        PopupWindow popup = new PopupWindow(scroll, width, LinearLayout.LayoutParams.WRAP_CONTENT, true);
+        scroll.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        if (scroll.getMeasuredHeight() > maxHeight) {
+            popup.setHeight(maxHeight);
+        }
+        popup.setBackgroundDrawable(new ColorDrawable(0));
+        popup.setOutsideTouchable(true);
+        popup.setElevation(8 * density);
+        popup.setAnimationStyle(0);
+        holder[0] = popup;
+        popup.showAsDropDown(anchor, 0, Math.round(-4 * density), Gravity.END);
+        animateIn(scroll, items, anchor);
+    }
+
     private static void animateIn(View menu, java.util.List<View> items, View anchor) {
         Context c = anchor.getContext();
         if (Motion.reduced(c)) return;

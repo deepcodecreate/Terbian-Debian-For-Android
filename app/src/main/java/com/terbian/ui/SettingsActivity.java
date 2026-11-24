@@ -183,13 +183,22 @@ public class SettingsActivity extends BaseActivity {
                 getString(R.string.repos_row_help), chevron(), null,
                 v -> startActivity(new Intent(this, RepositoriesActivity.class))));
 
-        TextView versionText = text(getString(R.string.app_version), 13, p.subtle, false);
+        TextView versionText = text(versionName(), 13, p.subtle, false);
         versionText.setTypeface(Typeface.MONOSPACE);
         rows.add(row(R.drawable.ic_set_info, getString(R.string.info_version), null, versionText, null, null));
 
         rows.add(row(R.drawable.ic_set_link, getString(R.string.info_github),
                 getString(R.string.info_github_handle), null, null, v -> openLink(GITHUB_URL)));
         return rows;
+    }
+
+    private String versionName() {
+        try {
+            String name = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            return name == null ? "" : name;
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private void openLink(String url) {

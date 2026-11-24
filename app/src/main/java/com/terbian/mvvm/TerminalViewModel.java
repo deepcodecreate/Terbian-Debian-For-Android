@@ -32,6 +32,8 @@ public class TerminalViewModel extends AndroidViewModel {
     private final MutableLiveData<String> title = new MutableLiveData<>();
     private final MutableLiveData<Boolean> finished = new MutableLiveData<>(false);
 
+    private final long createdAt = android.os.SystemClock.elapsedRealtime();
+
     private TerminalSession session;
     private String sessionId;
 
@@ -45,6 +47,10 @@ public class TerminalViewModel extends AndroidViewModel {
             title.setValue(initialTitle);
         }
         session = SessionRegistry.getInstance(getApplication()).getOrCreate(sessionId, initialTitle, type, client);
+    }
+
+    public long ageMs() {
+        return android.os.SystemClock.elapsedRealtime() - createdAt;
     }
 
     public TerminalSession getSession() {

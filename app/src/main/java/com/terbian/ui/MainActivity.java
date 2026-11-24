@@ -400,7 +400,7 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
     }
 
     private void setupToolbarActions() {
-        newSessionButton.setOnClickListener(v -> promptNewSessionType(type -> startSession(type, null)));
+        newSessionButton.setOnClickListener(v -> promptNewSessionType(v, type -> startSession(type, null)));
         menuButton.setOnClickListener(this::showMenu);
 
         ViewGroup bar = (ViewGroup) newSessionButton.getParent();
@@ -410,7 +410,7 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
         pasteButton = buildToolbarButton(R.drawable.ic_quick_paste, R.string.paste);
         bar.addView(quickButton, at, new ViewGroup.LayoutParams(size.width, size.height));
         bar.addView(pasteButton, at + 1, new ViewGroup.LayoutParams(size.width, size.height));
-        quickButton.setOnClickListener(v -> showQuickCommands());
+        quickButton.setOnClickListener(this::showQuickCommands);
         pasteButton.setOnClickListener(v -> pasteFromClipboard());
     }
 
@@ -469,59 +469,32 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
         session.getEmulator().paste(text.toString());
     }
 
-    private void showQuickCommands() {
+    private void showQuickCommands(View anchor) {
         ThemePalette p = palette != null ? palette : ThemePalette.of(this);
         List<QuickCommands.Item> items = QuickCommands.load(this);
 
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(20);
-        container.setPadding(pad, pad, pad, pad);
-        container.setBackground(Shapes.rect(this, p.surface, Shapes.LARGE, 0, 0));
-
-        TextView title = new TextView(this);
-        title.setText(R.string.quick_commands);
-        title.setTextColor(p.foreground);
-        title.setTextSize(17);
-        title.setTypeface(Typeface.DEFAULT_BOLD);
-        title.setPadding(0, 0, 0, dp(4));
-        container.addView(title);
-
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        MaxHeightScrollView scroll = new MaxHeightScrollView(this);
-        scroll.addView(list);
-        container.addView(scroll);
-
-        AlertDialog[] holder = new AlertDialog[1];
-        for (int i = 0; i < items.size(); i++) {
-            final int index = i;
-            final QuickCommands.Item item = items.get(i);
-            View row = buildSessionOptionRow(p, item.name, item.command, () -> {
-                holder[0].dismiss();
-                runInTerminal(item.command);
-            });
-            if (row instanceof LinearLayout && ((LinearLayout) row).getChildCount() > 1) {
-                ((TextView) ((LinearLayout) row).getChildAt(1)).setTypeface(Typeface.MONOSPACE);
-            }
-            row.setOnLongClickListener(v -> {
-                holder[0].dismiss();
-                showEditCommand(items, index);
-                return true;
-            });
-            list.addView(row);
+        List<String> titles = new ArrayList<>();
+        List<String> details = new ArrayList<>();
+        for (QuickCommands.Item item : items) {
+            titles.add(item.name);
+            details.add(item.command);
         }
-        container.addView(buildSessionOptionRow(p, getString(R.string.quick_commands_add), "", () -> {
-            holder[0].dismiss();
-            showEditCommand(items, -1);
-        }));
+        titles.add(getString(R.string.quick_commands_add));
+        details.add("");
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setView(container).create();
-        holder[0] = dialog;
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(0));
-        }
-        dialog.show();
+        ThemedMenu.showDetailed(anchor, p, titles, details, true, items.size(),
+                index -> {
+                    if (index < items.size()) {
+                        runInTerminal(items.get(index).command);
+                    } else {
+                        showEditCommand(items, -1);
+                    }
+                },
+                index -> {
+                    if (index < items.size()) {
+                        showEditCommand(items, index);
+                    }
+                });
     }
 
     private void showEditCommand(List<QuickCommands.Item> items, int index) {
@@ -560,8 +533,7 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this)
                 .setView(box)
-                .setNegativeButton(android.R.string.cancel, (d, w) -> showQuickCommands())
-                .setOnCancelListener(d -> showQuickCommands())
+                .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.qc_save, (d, w) -> {
                     String n = name.getText().toString().trim();
                     String c = command.getText().toString().trim();
@@ -571,14 +543,12 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
                         if (index >= 0) next.set(index, made); else next.add(made);
                         QuickCommands.save(this, next);
                     }
-                    showQuickCommands();
                 });
         if (existing != null) {
             builder.setNeutralButton(R.string.qc_delete, (d, w) -> {
                 List<QuickCommands.Item> next = new ArrayList<>(items);
                 next.remove(index);
                 QuickCommands.save(this, next);
-                showQuickCommands();
             });
         }
         AlertDialog dialog = builder.create();
@@ -688,95 +658,26 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
         }
     }
 
-    private void promptNewSessionType(Consumer<SessionType> onChosen) {
+    private void promptNewSessionType(View anchor, Consumer<SessionType> onChosen) {
         ThemePalette p = palette != null ? palette : ThemePalette.of(this);
-
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(20);
-        container.setPadding(pad, pad, pad, pad);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(p.surface);
-        bg.setCornerRadius(dp(16));
-        container.setBackground(bg);
-
-        TextView title = new TextView(this);
-        title.setText(R.string.choose_session_type);
-        title.setTextColor(p.foreground);
-        title.setTextSize(17);
-        title.setTypeface(Typeface.DEFAULT_BOLD);
-        title.setPadding(0, 0, 0, dp(12));
-        container.addView(title);
-
-        AlertDialog[] holder = new AlertDialog[1];
-
-        container.addView(buildSessionOptionRow(p, getString(R.string.session_type_debian),
-                getString(R.string.session_type_debian_desc), () -> {
-                    holder[0].dismiss();
-                    onChosen.accept(SessionType.DEBIAN);
-                }));
         boolean ubuntuReady = new RootfsManager(this, Distro.UBUNTU).isInstalled();
-        container.addView(buildSessionOptionRow(p, getString(R.string.session_type_ubuntu),
-                getString(ubuntuReady ? R.string.session_type_ubuntu_desc
-                        : R.string.session_type_ubuntu_desc_download), () -> {
-                    holder[0].dismiss();
-                    onChosen.accept(SessionType.UBUNTU);
-                }));
-        container.addView(buildSessionOptionRow(p, getString(R.string.session_type_shell),
-                getString(R.string.session_type_shell_desc), () -> {
-                    holder[0].dismiss();
-                    onChosen.accept(SessionType.SHELL);
-                }));
         boolean rooted = com.terbian.terminal.AndroidShell.findSu() != null;
-        container.addView(buildSessionOptionRow(p, getString(R.string.session_type_root),
-                getString(rooted ? R.string.session_type_root_desc : R.string.session_type_root_desc_missing), () -> {
-                    holder[0].dismiss();
-                    onChosen.accept(SessionType.ROOT);
-                }));
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setView(container).create();
-        holder[0] = dialog;
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
-        }
-        dialog.show();
-    }
+        List<String> titles = new ArrayList<>();
+        List<String> details = new ArrayList<>();
+        titles.add(getString(R.string.session_type_debian));
+        details.add(getString(R.string.session_type_debian_desc));
+        titles.add(getString(R.string.session_type_ubuntu));
+        details.add(getString(ubuntuReady ? R.string.session_type_ubuntu_desc
+                : R.string.session_type_ubuntu_desc_download));
+        titles.add(getString(R.string.session_type_shell));
+        details.add(getString(R.string.session_type_shell_desc));
+        titles.add(getString(R.string.session_type_root));
+        details.add(getString(rooted ? R.string.session_type_root_desc : R.string.session_type_root_desc_missing));
 
-    private View buildSessionOptionRow(ThemePalette p, String label, String description, Runnable onClick) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.VERTICAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        int padH = dp(14);
-        int padV = dp(12);
-        row.setPadding(padH, padV, padH, padV);
-
-        GradientDrawable rowBg = new GradientDrawable();
-        rowBg.setColor(p.surfaceHigh);
-        rowBg.setCornerRadius(dp(12));
-        rowBg.setStroke((int) (1 * getResources().getDisplayMetrics().density), p.border);
-        row.setBackground(rowBg);
-
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(8);
-        row.setLayoutParams(lp);
-
-        TextView labelView = new TextView(this);
-        labelView.setText(label);
-        labelView.setTextColor(p.foreground);
-        labelView.setTextSize(15);
-        labelView.setTypeface(Typeface.DEFAULT_BOLD);
-        row.addView(labelView);
-
-        TextView descView = new TextView(this);
-        descView.setText(description);
-        descView.setTextColor(p.subtle);
-        descView.setTextSize(12);
-        descView.setPadding(0, dp(2), 0, 0);
-        row.addView(descView);
-
-        row.setOnClickListener(v -> onClick.run());
-        return row;
+        final SessionType[] types = {SessionType.DEBIAN, SessionType.UBUNTU, SessionType.SHELL, SessionType.ROOT};
+        ThemedMenu.showDetailed(anchor, p, titles, details, false, -1,
+                index -> onChosen.accept(types[index]), null);
     }
 
     private int dp(int value) {
