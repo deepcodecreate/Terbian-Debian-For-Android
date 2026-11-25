@@ -64,6 +64,9 @@ public final class TerbianDesktopManager {
 
         default void onWarning(String message) {
         }
+
+        default void onAppReady(int display) {
+        }
     }
 
     private static volatile TerbianDesktopManager instance;
@@ -144,11 +147,13 @@ public final class TerbianDesktopManager {
         public final String command;
         public final Distro distro;
         public final int display;
+        public final boolean app;
 
-        StartRequest(String command, Distro distro, int display) {
+        StartRequest(String command, Distro distro, int display, boolean app) {
             this.command = command;
             this.distro = distro;
             this.display = display;
+            this.app = app;
         }
     }
 
@@ -232,7 +237,36 @@ public final class TerbianDesktopManager {
         });
     }
 
+    public void launchAppAsync(Context context, Distro distro, String title, String appCommand) {
+        Context app = context.getApplicationContext();
+        busy = true;
+        io.execute(() -> {
+            try {
+                append("Opening " + title + " in its own window ...\n");
+                StartRequest request = prepareStart(app, distro, appCommand);
+                if (request == null) {
+                    return;
+                }
+                runDesktopInPage(app, request);
+                busy = false;
+                Ui current = ui;
+                if (current != null) {
+                    current.onAppReady(request.display);
+                }
+            } catch (Exception e) {
+                busy = false;
+                postError(messageOf(e));
+            } finally {
+                busy = false;
+            }
+        });
+    }
+
     private StartRequest prepareStart(Context app, Distro distro) throws Exception {
+        return prepareStart(app, distro, null);
+    }
+
+    private StartRequest prepareStart(Context app, Distro distro, String appCommand) throws Exception {
         File rootfs = distro.rootfsDir(app);
         if (!isDesktopInstalled(rootfs)) {
             throw new IllegalStateException("Install the desktop before starting it");
@@ -259,7 +293,9 @@ public final class TerbianDesktopManager {
                     + " desktops are running. Stop one first.");
         }
         try {
-            ensureFileManagerSupport(app, distro, rootfs);
+            if (appCommand == null) {
+                ensureFileManagerSupport(app, distro, rootfs);
+            }
             GuestRunner.installGuiScript(app, rootfs);
             PhantomGuard.tuneFirefox(rootfs);
         } catch (Exception e) {
@@ -267,8 +303,9 @@ public final class TerbianDesktopManager {
             throw e;
         }
 
-        String command = "TERBIAN_DISPLAY=" + display + " terbian-gui start " + settings.geometry + " " + display;
-        return new StartRequest(command, distro, display);
+        String prefix = appCommand == null ? "" : "TERBIAN_APP=" + LinuxApps.shellQuote(appCommand) + " ";
+        String command = prefix + "TERBIAN_DISPLAY=" + display + " terbian-gui start " + settings.geometry + " " + display;
+        return new StartRequest(command, distro, display, appCommand != null);
     }
 
     private void runDesktopInPage(Context app, StartRequest request) throws Exception {
@@ -293,7 +330,8 @@ public final class TerbianDesktopManager {
         synchronized (stateLock) {
             hosted.put(display, new Hosted(guest, distro));
         }
-        long deadline = System.currentTimeMillis() + READY_TIMEOUT_MS;
+        long readyMs = request.app ? 300_000 : READY_TIMEOUT_MS;
+        long deadline = System.currentTimeMillis() + readyMs;
         boolean ready = false;
         try {
             while (System.currentTimeMillis() < deadline) {
@@ -309,7 +347,7 @@ public final class TerbianDesktopManager {
             }
             if (!ready) {
                 throw new IllegalStateException("The desktop on display :" + display
-                        + " did not come up in " + (READY_TIMEOUT_MS / 1000) + "s.\n" + guest.tail());
+                        + " did not come up in " + (readyMs / 1000) + "s.\n" + guest.tail());
             }
 
             append("Waiting for the desktop session to finish loading...\n");
@@ -325,7 +363,8 @@ public final class TerbianDesktopManager {
             releaseForegroundIfIdle(app);
             throw e;
         }
-        append("Desktop :" + display + " is ready. Tap Connect to open it.\n");
+        append(request.app ? "The app window is ready.\n"
+                : "Desktop :" + display + " is ready. Tap Connect to open it.\n");
     }
 
     public void stopAsync(Context context, Distro distro) {

@@ -256,4 +256,14 @@
 
     <string name="installing_title">Installing %1$s</string>
     <string name="installing_sub">This runs once. Keep the app open.</string>
+    <string name="linux_apps">Linux apps</string>
+    <string name="apps_title">Linux apps</string>
+    <string name="apps_sub">Open an app in its own window, without the full desktop</string>
+    <string name="apps_search">Search apps</string>
+    <string name="apps_refresh">Refresh</string>
+    <string name="apps_empty">No graphical apps found. Install one with apt (for example: apt install gimp) or put an .AppImage file in /root/Applications, then refresh.</string>
+    <string name="apps_no_match">No app matches your search.</string>
+    <string name="apps_not_installed">%1$s is not installed yet. Open a %1$s terminal from the + button once.</string>
+    <string name="apps_opening">Opening %1$s ...</string>
+    <string name="apps_busy">Another desktop task is running. Please wait a moment.</string>
 </resources>

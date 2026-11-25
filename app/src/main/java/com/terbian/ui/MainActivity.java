@@ -586,10 +586,11 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
 
     private void showMenu(View anchor) {
         final boolean showStorage = !hasStorageAccess();
-        final int[] ids = showStorage ? new int[]{7, 8, 6, 5} : new int[]{7, 8, 5};
+        final int[] ids = showStorage ? new int[]{9, 7, 8, 6, 5} : new int[]{9, 7, 8, 5};
         final int[] labels = showStorage
-                ? new int[]{R.string.terbian_gui, R.string.clear_screen, R.string.storage_access, R.string.settings}
-                : new int[]{R.string.terbian_gui, R.string.clear_screen, R.string.settings};
+                ? new int[]{R.string.linux_apps, R.string.terbian_gui, R.string.clear_screen,
+                        R.string.storage_access, R.string.settings}
+                : new int[]{R.string.linux_apps, R.string.terbian_gui, R.string.clear_screen, R.string.settings};
         List<String> names = new ArrayList<>();
         for (int label : labels) {
             names.add(getString(label));
@@ -601,6 +602,8 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
     private void onMenuItem(int id) {
         if (id == 5) {
             startActivity(new Intent(this, SettingsActivity.class));
+        } else if (id == 9) {
+            startActivity(new Intent(this, com.terbian.gui.AppsActivity.class));
         } else if (id == 7) {
             startActivity(new Intent(this, TerbianGuiActivity.class));
         } else if (id == 6) {

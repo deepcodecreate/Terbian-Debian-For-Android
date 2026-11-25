@@ -90,6 +90,7 @@ public final class AndroidShell {
         env.put("TERBIAN_PROOT", new File(nativeLibDir, "libproot.so").getAbsolutePath());
         env.put("TERBIAN_LOADER", new File(nativeLibDir, "libloader.so").getAbsolutePath());
         env.put("TERBIAN_LIBDIR", nativeLibDir);
+        env.put("TERBIAN_PKG", app.getPackageName());
         env.put("TERBIAN_DEBIAN", Distro.DEBIAN.rootfsDir(app).getAbsolutePath());
         env.put("TERBIAN_UBUNTU", Distro.UBUNTU.rootfsDir(app).getAbsolutePath());
         env.put("TERBIAN_GUEST_TMP", new File(app.getFilesDir(), "debian/tmp").getAbsolutePath());
@@ -101,7 +102,7 @@ public final class AndroidShell {
         }
 
         if (root && su != null) {
-            return rootSession(su, env, client);
+            return rootSession(su, env, client, home, rc);
         }
         String shell = pickShell();
         String[] args = shell.endsWith("bash")
@@ -111,7 +112,8 @@ public final class AndroidShell {
         return new TerminalSession(shell, home.getAbsolutePath(), args, toArray(env), null, client);
     }
 
-    private static TerminalSession rootSession(String su, Map<String, String> env, TerminalSessionClient client) {
+    private static TerminalSession rootSession(String su, Map<String, String> env, TerminalSessionClient client,
+                                               File home, File rc) {
         String rootHome = "/data/local/tmp";
         env.put("HOME", rootHome);
         env.put("SHELL", "/system/bin/sh");
@@ -122,23 +124,121 @@ public final class AndroidShell {
                     || key.equals("TMPDIR") || key.equals("LANG") || key.equals("SHELL")
                     || key.equals("COLORTERM") || key.startsWith("TERBIAN_") || key.equals("ANDROID_ROOT")
                     || key.equals("ANDROID_DATA") || key.equals("EXTERNAL_STORAGE")) {
-                script.append("export ").append(key).append('=').append(quote(e.getValue())).append("; ");
+                script.append("export ").append(key).append('=').append(quote(e.getValue())).append('\n');
             }
         }
-        script.append("cd ").append(rootHome).append("; ").append(ROOT_TTY_BOOTSTRAP);
-        return new TerminalSession(su, rootHome, new String[]{su, "-c", script.toString()},
-                toArray(env), null, client);
+        script.append("cd ").append(rootHome).append('\n');
+        script.append(". ").append(quote(rc.getAbsolutePath())).append('\n');
+        script.append("clear\n");
+        File init = new File(home, ".terbian_root_init");
+        write(init, script.toString());
+        init.setReadable(true, false);
+        rc.setReadable(true, false);
+        RootInitClient wrapped = new RootInitClient(client, " . " + quote(init.getAbsolutePath()) + "\n");
+        TerminalSession session = new TerminalSession(su, rootHome, new String[]{su}, toArray(env), null, wrapped);
+        return session;
     }
 
-    private static final String ROOT_TTY_BOOTSTRAP =
-            "if ( : </dev/tty ) 2>/dev/null; then exec /system/bin/sh -i; fi; "
-            + "for _b in /data/adb/magisk/busybox /data/adb/ksu/bin/busybox /data/adb/ap/bin/busybox"
-            + " /system/bin/busybox /system/xbin/busybox; do "
-            + "if [ -x \"$_b\" ] && \"$_b\" setsid -c true </dev/null >/dev/null 2>&1; then "
-            + "( exec \"$_b\" setsid -c /system/bin/sh -i ); exit $?; fi; done; "
-            + "_h=$(setsid </dev/null 2>&1); "
-            + "case \"$_h\" in *'[-t]'*) ( exec setsid -t /system/bin/sh -i ); exit $?;; esac; "
-            + "exec /system/bin/sh -i";
+    private static final class RootInitClient implements TerminalSessionClient {
+        private final TerminalSessionClient delegate;
+        private final String initCommand;
+        private boolean sent;
+
+        RootInitClient(TerminalSessionClient delegate, String initCommand) {
+            this.delegate = delegate;
+            this.initCommand = initCommand;
+        }
+
+        @Override
+        public void onTextChanged(TerminalSession changedSession) {
+            if (!sent) {
+                sent = true;
+                byte[] bytes = initCommand.getBytes(StandardCharsets.UTF_8);
+                changedSession.write(bytes, 0, bytes.length);
+            }
+            delegate.onTextChanged(changedSession);
+        }
+
+        @Override
+        public void onTitleChanged(TerminalSession changedSession) {
+            delegate.onTitleChanged(changedSession);
+        }
+
+        @Override
+        public void onSessionFinished(TerminalSession finishedSession) {
+            delegate.onSessionFinished(finishedSession);
+        }
+
+        @Override
+        public void onCopyTextToClipboard(TerminalSession session, String text) {
+            delegate.onCopyTextToClipboard(session, text);
+        }
+
+        @Override
+        public void onPasteTextFromClipboard(TerminalSession session) {
+            delegate.onPasteTextFromClipboard(session);
+        }
+
+        @Override
+        public void onBell(TerminalSession session) {
+            delegate.onBell(session);
+        }
+
+        @Override
+        public void onColorsChanged(TerminalSession session) {
+            delegate.onColorsChanged(session);
+        }
+
+        @Override
+        public void onTerminalCursorStateChange(boolean state) {
+            delegate.onTerminalCursorStateChange(state);
+        }
+
+        @Override
+        public void setTerminalShellPid(TerminalSession session, int pid) {
+            delegate.setTerminalShellPid(session, pid);
+        }
+
+        @Override
+        public Integer getTerminalCursorStyle() {
+            return delegate.getTerminalCursorStyle();
+        }
+
+        @Override
+        public void logError(String tag, String message) {
+            delegate.logError(tag, message);
+        }
+
+        @Override
+        public void logWarn(String tag, String message) {
+            delegate.logWarn(tag, message);
+        }
+
+        @Override
+        public void logInfo(String tag, String message) {
+            delegate.logInfo(tag, message);
+        }
+
+        @Override
+        public void logDebug(String tag, String message) {
+            delegate.logDebug(tag, message);
+        }
+
+        @Override
+        public void logVerbose(String tag, String message) {
+            delegate.logVerbose(tag, message);
+        }
+
+        @Override
+        public void logStackTraceWithMessage(String tag, String message, Exception e) {
+            delegate.logStackTraceWithMessage(tag, message, e);
+        }
+
+        @Override
+        public void logStackTrace(String tag, Exception e) {
+            delegate.logStackTrace(tag, e);
+        }
+    }
 
     private static String pickShell() {
         for (String candidate : new String[]{"/system/bin/bash", "/system/xbin/bash", "/system/bin/sh"}) {
@@ -235,6 +335,34 @@ public final class AndroidShell {
             "        return 1\n" +
             "    fi\n" +
             "    \"$TERBIAN_SU\"\n" +
+            "}\n" +
+            "\n" +
+            "grant() {\n" +
+            "    if [ $# -eq 0 ]; then\n" +
+            "        echo \"usage: grant android.permission.NAME\" >&2\n" +
+            "        return 2\n" +
+            "    fi\n" +
+            "    if pm grant \"$TERBIAN_PKG\" \"$1\" >/dev/null 2>&1; then\n" +
+            "        echo \"granted $1\"\n" +
+            "    elif [ -n \"$TERBIAN_SU\" ] && \"$TERBIAN_SU\" -c \"pm grant $TERBIAN_PKG $1\"; then\n" +
+            "        echo \"granted $1\"\n" +
+            "    else\n" +
+            "        echo \"Only root or adb can grant this. Run appinfo and allow it in Android Settings.\" >&2\n" +
+            "        return 1\n" +
+            "    fi\n" +
+            "}\n" +
+            "\n" +
+            "appinfo() {\n" +
+            "    am start -a android.settings.APPLICATION_DETAILS_SETTINGS -d \"package:$TERBIAN_PKG\" >/dev/null 2>&1 \\\n" +
+            "        || echo \"Open Settings, Apps, Terbian, Permissions.\" >&2\n" +
+            "}\n" +
+            "\n" +
+            "perms() {\n" +
+            "    if [ -n \"$TERBIAN_SU\" ]; then\n" +
+            "        \"$TERBIAN_SU\" -c \"dumpsys package $TERBIAN_PKG\" | grep -E \"permission|granted=\"\n" +
+            "    else\n" +
+            "        echo \"Listing needs root. Run appinfo to see them in Android Settings.\" >&2\n" +
+            "    fi\n" +
             "}\n" +
             "\n" +
             "_tb_proot() {\n" +

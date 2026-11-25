@@ -77,6 +77,11 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".gui.AppsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+
+        <activity
             android:name=".gui.TerbianGuiSettingsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
