@@ -306,7 +306,8 @@ run_app() {
   limited 10 xauth -f "$auth" add ":$d" . "$cookie" >/dev/null 2>&1 || true
   APP_X_DISPLAY="$d"
   APP_X_AUTH="$auth"
-  trap app_cleanup EXIT INT TERM
+  trap app_cleanup EXIT
+  trap 'exit 130' INT TERM
   echo "[terbian-gui] starting a light display :$d (no desktop)"
   nohup setsid Xtigervnc ":$d" -geometry "$geo" -depth 24 -localhost -nolisten tcp \
     -rfbport "$((5900 + d))" -rfbauth "$HOME/.vnc/passwd" -SecurityTypes VncAuth \
@@ -327,6 +328,11 @@ run_app() {
     exit 1
   fi
   export DISPLAY=":$d" XAUTHORITY="$auth" LIBGL_ALWAYS_SOFTWARE=1 NO_AT_BRIDGE=1 APPIMAGE_EXTRACT_AND_RUN=1
+  export GDK_BACKEND=x11 GSETTINGS_BACKEND=memory QT_X11_NO_MITSHM=1 _JAVA_AWT_WM_NONREPARENTING=1
+  export XDG_RUNTIME_DIR="/tmp/runtime-root-$d"
+  mkdir -p "$XDG_RUNTIME_DIR"
+  chmod 700 "$XDG_RUNTIME_DIR"
+  [ -s /etc/machine-id ] || dbus-uuidgen --ensure 2>/dev/null || true
   xsetroot -solid '#1e1e24' 2>/dev/null || true
   if command -v xfwm4 >/dev/null 2>&1; then
     xfwm4 --compositor=off >/dev/null 2>&1 &
@@ -337,13 +343,20 @@ run_app() {
   fi
   unset SESSION_MANAGER DBUS_SESSION_BUS_ADDRESS
   if command -v dbus-launch >/dev/null 2>&1; then
-    eval "$(dbus-launch --sh-syntax)"
+    eval "$(limited 10 dbus-launch --sh-syntax 2>/dev/null)" || true
+  fi
+  echo "[terbian-gui] starting: $*"
+  sh -c "$*" &
+  APP_PID=$!
+  sleep 2
+  if ! pid_alive "$APP_PID" && ! app_clients_left "$d"; then
+    echo "[terbian-gui] the app exited right away. Run it again to see its messages above."
   fi
   if [ -n "${TERBIAN_APP_TOKEN:-}" ]; then
     echo "$((5900 + d))" > "$HOME/.vnc/app-$TERBIAN_APP_TOKEN.port"
   fi
-  echo "[terbian-gui] window ready, starting: $*"
-  sh -c "$*" || true
+  echo "[terbian-gui] window opened on display :$d (press Ctrl+C here to close the app)"
+  wait "$APP_PID" || true
   sleep 3
   while [ "$gone" -lt 3 ]; do
     if app_clients_left "$d"; then gone=0; else gone=$((gone + 1)); fi
