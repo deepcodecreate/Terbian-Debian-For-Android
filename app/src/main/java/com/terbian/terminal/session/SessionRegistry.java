@@ -19,6 +19,7 @@ package com.terbian.terminal.session;
 import android.content.Context;
 import android.content.Intent;
 
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 import com.terbian.debian.Distro;
@@ -121,6 +122,10 @@ public final class SessionRegistry {
     }
 
     private void notifySessionStopped(String id) {
+        try {
+            NotificationManagerCompat.from(appContext).cancel(TerminalService.notificationIdFor(id));
+        } catch (Exception ignored) {
+        }
         try {
             Intent intent = new Intent(appContext, TerminalService.class);
             intent.setAction(TerminalService.ACTION_SESSION_STOPPED);

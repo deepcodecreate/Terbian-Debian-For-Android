@@ -33,11 +33,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.view.WindowCompat;
 
 import com.terbian.R;
 import com.terbian.debian.Distro;
+import com.terbian.debian.GuestRunner;
 import com.terbian.prefs.AppSettings;
 import com.terbian.terminal.SessionType;
 import com.terbian.ui.BaseActivity;
@@ -46,6 +48,8 @@ import com.terbian.ui.ThemeApplier;
 import com.terbian.ui.ThemePalette;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -345,10 +349,29 @@ public class AppsActivity extends BaseActivity {
     }
 
     private void launch(LinuxApps.Entry entry) {
+        File rootfs = distro.rootfsDir(this);
+        String token = Long.toHexString(System.nanoTime());
+        try {
+            GuestRunner.installGuiScript(this, rootfs);
+            File incoming = new File(rootfs, "root/.vnc/passwd.incoming");
+            if (!new File(rootfs, "root/.vnc/passwd").isFile() && PasswordStore.hasPassword(this)) {
+                incoming.getParentFile().mkdirs();
+                try (FileOutputStream out = new FileOutputStream(incoming)) {
+                    out.write(PasswordStore.load(this).getBytes(StandardCharsets.UTF_8));
+                }
+                incoming.setReadable(true, false);
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, e.getMessage() == null ? e.toString() : e.getMessage(), Toast.LENGTH_LONG).show();
+            return;
+        }
+        String command = "TERBIAN_APP_TOKEN=" + token + " TERBIAN_GEOMETRY=" + GuiSettings.load(this).geometry
+                + " terbian-gui app " + LinuxApps.shellQuote(entry.command);
         Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra(MainActivity.EXTRA_RUN_COMMAND, entry.command);
+        intent.putExtra(MainActivity.EXTRA_RUN_COMMAND, command);
         intent.putExtra(MainActivity.EXTRA_RUN_TITLE, entry.name);
         intent.putExtra(MainActivity.EXTRA_RUN_TYPE, SessionType.forDistro(distro).name());
+        intent.putExtra(MainActivity.EXTRA_APP_TOKEN, token);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
         finish();

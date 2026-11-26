@@ -258,7 +258,7 @@
     <string name="installing_sub">This runs once. Keep the app open.</string>
     <string name="linux_apps">Linux apps</string>
     <string name="apps_title">Linux apps</string>
-    <string name="apps_sub">Open an app in a new terminal tab</string>
+    <string name="apps_sub">Open an app in its own terminal tab and window</string>
     <string name="apps_search">Search apps</string>
     <string name="apps_refresh">Refresh</string>
     <string name="apps_empty">No graphical apps found. Install one with apt (for example: apt install gimp) or put an .AppImage file in /root/Applications, then refresh.</string>

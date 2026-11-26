@@ -106,6 +106,7 @@ public final class LinuxApps {
         String exec = null;
         String icon = null;
         String type = "Application";
+        String categories = "";
         boolean hidden = false;
         boolean terminal = false;
         boolean inEntry = false;
@@ -148,6 +149,9 @@ public final class LinuxApps {
                     case "Terminal":
                         terminal = value.equalsIgnoreCase("true");
                         break;
+                    case "Categories":
+                        categories = value;
+                        break;
                     default:
                         break;
                 }
@@ -159,10 +163,30 @@ public final class LinuxApps {
             return null;
         }
         String command = cleanExec(exec);
-        if (command.isEmpty()) {
+        if (command.isEmpty() || isDesktopComponent(command, categories)) {
             return null;
         }
         return new Entry(name, command, icon, false, file.getName());
+    }
+
+    private static boolean isDesktopComponent(String command, String categories) {
+        String first = command.split(" ")[0];
+        first = first.substring(first.lastIndexOf('/') + 1);
+        if (first.equals("thunar")) {
+            return !command.equals("thunar");
+        }
+        if (categories.contains("FileManager")) {
+            return false;
+        }
+        if (categories.contains("Settings") || categories.contains("X-XFCE")
+                || categories.contains("Screensaver") || categories.contains("DesktopSettings")) {
+            return true;
+        }
+        return first.startsWith("xfce4-") || first.startsWith("xfce-") || first.startsWith("exo-")
+                || first.startsWith("xfdesktop") || first.startsWith("xfwm4") || first.startsWith("xfconf")
+                || first.startsWith("xfsettingsd") || first.startsWith("xdg-") || first.startsWith("panel-")
+                || first.startsWith("nm-") || first.startsWith("x-terminal-emulator")
+                || first.startsWith("x-www-browser") || first.startsWith("lightdm");
     }
 
     static String cleanExec(String exec) {

@@ -49,6 +49,10 @@ public class TerminalService extends Service {
     public static final String EXTRA_SESSION_ID = "session_id";
     public static final String EXTRA_SESSION_TITLE = "session_title";
 
+    public static int notificationIdFor(String sessionId) {
+        return SESSION_NOTIFICATION_ID_BASE + (sessionId.hashCode() & 0x7FFF);
+    }
+
     public class LocalBinder extends Binder {
         public TerminalService getService() {
             return TerminalService.this;
@@ -57,7 +61,6 @@ public class TerminalService extends Service {
 
     private final LocalBinder binder = new LocalBinder();
     private final Map<String, Integer> sessionNotificationIds = new LinkedHashMap<>();
-    private int nextNotificationId = SESSION_NOTIFICATION_ID_BASE;
     private PowerManager.WakeLock wakeLock;
 
     @Override
@@ -75,6 +78,10 @@ public class TerminalService extends Service {
 
     @Override
     public void onDestroy() {
+        for (Integer id : sessionNotificationIds.values()) {
+            NotificationManagerCompat.from(this).cancel(id);
+        }
+        sessionNotificationIds.clear();
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
@@ -146,7 +153,7 @@ public class TerminalService extends Service {
     }
 
     private void showSessionNotification(String sessionId, String title) {
-        int notificationId = sessionNotificationIds.computeIfAbsent(sessionId, id -> nextNotificationId++);
+        int notificationId = sessionNotificationIds.computeIfAbsent(sessionId, TerminalService::notificationIdFor);
 
         Intent stopIntent = new Intent(this, TerminalService.class);
         stopIntent.setAction(ACTION_STOP_SESSION);
@@ -173,9 +180,7 @@ public class TerminalService extends Service {
     }
 
     private void removeSessionNotification(String sessionId) {
-        Integer notificationId = sessionNotificationIds.remove(sessionId);
-        if (notificationId != null) {
-            NotificationManagerCompat.from(this).cancel(notificationId);
-        }
+        sessionNotificationIds.remove(sessionId);
+        NotificationManagerCompat.from(this).cancel(notificationIdFor(sessionId));
     }
 }

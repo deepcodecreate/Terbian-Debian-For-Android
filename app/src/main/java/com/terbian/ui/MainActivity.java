@@ -85,6 +85,7 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
     public static final String EXTRA_RUN_TITLE = "run_title";
 
     public static final String EXTRA_RUN_TYPE = "run_type";
+    public static final String EXTRA_APP_TOKEN = "app_token";
 
     private LinearLayout headerBar;
     private TextView activeSessionTitle;
@@ -622,10 +623,15 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
         intent.removeExtra(EXTRA_RUN_TITLE);
         SessionType runType = SessionType.fromName(intent.getStringExtra(EXTRA_RUN_TYPE));
         intent.removeExtra(EXTRA_RUN_TYPE);
+        String appToken = intent.getStringExtra(EXTRA_APP_TOKEN);
+        intent.removeExtra(EXTRA_APP_TOKEN);
         startSession(runType, entry -> {
             sessionsViewModel.renameSession(entry.id,
                     runTitle == null || runTitle.isEmpty() ? getString(R.string.terbian_gui) : runTitle);
             typeWhenReady(entry.id, command, 0);
+            if (appToken != null && runType.distro() != null) {
+                watchAppWindow(entry.id, runType.distro(), appToken, 0);
+            }
         });
     }
 
@@ -640,6 +646,30 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
             SessionEntry entry = sessionsViewModel.addSession(type);
             if (onCreated != null) onCreated.accept(entry);
         });
+    }
+
+    private void watchAppWindow(String sessionId, Distro distro, String token, int attempt) {
+        java.io.File flag = new java.io.File(distro.rootfsDir(this), "root/.vnc/app-" + token + ".port");
+        if (flag.isFile() && flag.length() > 0) {
+            int port = 0;
+            try {
+                String text = new String(java.nio.file.Files.readAllBytes(flag.toPath()),
+                        java.nio.charset.StandardCharsets.UTF_8).trim();
+                port = Integer.parseInt(text);
+            } catch (Exception ignored) {
+            }
+            flag.delete();
+            if (port > 0) {
+                Intent viewer = new Intent(this, com.terbian.gui.VncViewerActivity.class);
+                viewer.putExtra(com.terbian.gui.VncViewerActivity.EXTRA_CONNECT, true);
+                viewer.putExtra(com.terbian.gui.VncViewerActivity.EXTRA_PORT, port);
+                startActivity(viewer);
+            }
+            return;
+        }
+        if (attempt < 1200 && SessionRegistry.getInstance(this).get(sessionId) != null) {
+            sessionPager.postDelayed(() -> watchAppWindow(sessionId, distro, token, attempt + 1), 250);
+        }
     }
 
     private void typeWhenReady(String sessionId, String command, int attempt) {

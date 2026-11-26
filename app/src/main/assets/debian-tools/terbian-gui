@@ -229,6 +229,129 @@ install_firefox_ubuntu() {
   apt-get update && apt-get install -y --no-install-recommends firefox
 }
 
+need_app_packages() {
+  local missing=""
+  command -v Xtigervnc >/dev/null 2>&1 || missing="$missing tigervnc-standalone-server tigervnc-tools"
+  command -v xauth >/dev/null 2>&1 || missing="$missing xauth"
+  command -v xsetroot >/dev/null 2>&1 || missing="$missing x11-xserver-utils"
+  command -v dbus-launch >/dev/null 2>&1 || missing="$missing dbus-x11"
+  if ! command -v xfwm4 >/dev/null 2>&1 && ! command -v openbox >/dev/null 2>&1; then missing="$missing openbox"; fi
+  if [ -n "$missing" ]; then
+    echo "[terbian-gui] installing$missing (one time, no desktop needed)"
+    apt-get update -qq || true
+    if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $missing; then
+      echo "Install failed. Check your connection and open the app again."
+      exit 1
+    fi
+  fi
+}
+
+app_display() {
+  local d
+  for d in 11 12 13 14 15 16 17 18 19; do
+    if x_alive "$d"; then continue; fi
+    rm -f "/tmp/.X$d-lock" "/tmp/.X11-unix/X$d"
+    echo "$d"
+    return 0
+  done
+  return 1
+}
+
+app_clients_left() {
+  local d="$1" f p c
+  for f in /proc/[0-9]*/environ; do
+    p="${f#/proc/}"; p="${p%/environ}"
+    [ "$p" = "$$" ] && continue
+    c="$(cat "/proc/$p/comm" 2>/dev/null)"
+    case "$c" in
+      xfwm4|openbox|dbus-daemon|dbus-launch|sh|bash|xsetroot|cat|sleep|tr|grep|Xtigervnc|at-spi*|dconf-service|gvfs*|xfconfd|ibus*|pulseaudio|terbian-gui) continue;;
+    esac
+    if tr '\0' '\n' < "$f" 2>/dev/null | grep -qx "DISPLAY=:$d"; then return 0; fi
+  done
+  return 1
+}
+
+app_cleanup() {
+  trap - EXIT INT TERM
+  if [ -n "${APP_WM_PID:-}" ]; then kill "$APP_WM_PID" 2>/dev/null || true; fi
+  if [ -n "${DBUS_SESSION_BUS_PID:-}" ]; then kill "$DBUS_SESSION_BUS_PID" 2>/dev/null || true; fi
+  if [ -n "${APP_X_PID:-}" ]; then kill "$APP_X_PID" 2>/dev/null || true; fi
+  if [ -n "${APP_X_DISPLAY:-}" ]; then rm -f "/tmp/.X${APP_X_DISPLAY}-lock" "/tmp/.X11-unix/X${APP_X_DISPLAY}" "${APP_X_AUTH:-}"; fi
+  if [ -n "${TERBIAN_APP_TOKEN:-}" ]; then rm -f "$HOME/.vnc/app-$TERBIAN_APP_TOKEN.port"; fi
+}
+
+run_app() {
+  local d geo log auth cookie i gone=0
+  if [ $# -eq 0 ]; then
+    echo "usage: terbian-gui app COMMAND"
+    exit 2
+  fi
+  mkdir -p "$HOME/.vnc"
+  need_app_packages
+  if [ ! -f "$HOME/.vnc/passwd" ] && [ -f "$HOME/.vnc/passwd.incoming" ]; then
+    tr -d '\r\n' < "$HOME/.vnc/passwd.incoming" | vncpasswd -f > "$HOME/.vnc/passwd"
+    rm -f "$HOME/.vnc/passwd.incoming"
+    chmod 600 "$HOME/.vnc/passwd"
+  fi
+  if [ ! -f "$HOME/.vnc/passwd" ]; then
+    echo "No VNC password yet. Set one in Terbian GUI, then open the app again."
+    exit 1
+  fi
+  d=$(app_display) || { echo "No free display for another app window."; exit 1; }
+  geo="${TERBIAN_GEOMETRY:-1280x720}"
+  log="$HOME/.vnc/terbian-app-$d.log"
+  auth="$HOME/.vnc/Xauthority-$d"
+  cookie=$(mcookie 2>/dev/null || od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+  rm -f "$auth"; : > "$auth"
+  limited 10 xauth -f "$auth" add ":$d" . "$cookie" >/dev/null 2>&1 || true
+  APP_X_DISPLAY="$d"
+  APP_X_AUTH="$auth"
+  trap app_cleanup EXIT INT TERM
+  echo "[terbian-gui] starting a light display :$d (no desktop)"
+  nohup setsid Xtigervnc ":$d" -geometry "$geo" -depth 24 -localhost -nolisten tcp \
+    -rfbport "$((5900 + d))" -rfbauth "$HOME/.vnc/passwd" -SecurityTypes VncAuth \
+    -desktop "terbian-app:$d" -auth "$auth" -AlwaysShared >"$log" 2>&1 </dev/null &
+  APP_X_PID=$!
+  for i in $(seq 1 180); do
+    [ -S "/tmp/.X11-unix/X$d" ] && break
+    if ! pid_alive "$APP_X_PID"; then
+      echo "Xtigervnc stopped right after starting. Log ($log):"
+      tail -n 20 "$log"
+      exit 1
+    fi
+    sleep 0.5
+  done
+  if [ ! -S "/tmp/.X11-unix/X$d" ] || ! wait_port "$((5900 + d))"; then
+    echo "Xtigervnc did not come up. Log ($log):"
+    tail -n 20 "$log"
+    exit 1
+  fi
+  export DISPLAY=":$d" XAUTHORITY="$auth" LIBGL_ALWAYS_SOFTWARE=1 NO_AT_BRIDGE=1 APPIMAGE_EXTRACT_AND_RUN=1
+  xsetroot -solid '#1e1e24' 2>/dev/null || true
+  if command -v xfwm4 >/dev/null 2>&1; then
+    xfwm4 --compositor=off >/dev/null 2>&1 &
+    APP_WM_PID=$!
+  elif command -v openbox >/dev/null 2>&1; then
+    openbox >/dev/null 2>&1 &
+    APP_WM_PID=$!
+  fi
+  unset SESSION_MANAGER DBUS_SESSION_BUS_ADDRESS
+  if command -v dbus-launch >/dev/null 2>&1; then
+    eval "$(dbus-launch --sh-syntax)"
+  fi
+  if [ -n "${TERBIAN_APP_TOKEN:-}" ]; then
+    echo "$((5900 + d))" > "$HOME/.vnc/app-$TERBIAN_APP_TOKEN.port"
+  fi
+  echo "[terbian-gui] window ready, starting: $*"
+  sh -c "$*" || true
+  sleep 3
+  while [ "$gone" -lt 3 ]; do
+    if app_clients_left "$d"; then gone=0; else gone=$((gone + 1)); fi
+    sleep 2
+  done
+  app_cleanup
+}
+
 case "${1:-help}" in
   install)
     export DEBIAN_FRONTEND=noninteractive
@@ -294,6 +417,10 @@ case "${1:-help}" in
     wait_session "$DISP" || exit 1
     echo "Connect a VNC viewer to 127.0.0.1:$PORT"
     ;;
+  app)
+    shift
+    run_app "$@"
+    ;;
   stop)
     if [ "$EXPLICIT" = 1 ]; then
       TARGETS="$DISP"
@@ -317,6 +444,6 @@ case "${1:-help}" in
     ;;
   *)
     echo "XFCE desktop over VNC (Terbian GUI connects to 127.0.0.1:5901 and up)"
-    echo "usage: terbian-gui install | start [WxH] [DISPLAY] | stop [DISPLAY] | status"
+    echo "usage: terbian-gui install | start [WxH] [DISPLAY] | app COMMAND | stop [DISPLAY] | status"
     ;;
 esac
