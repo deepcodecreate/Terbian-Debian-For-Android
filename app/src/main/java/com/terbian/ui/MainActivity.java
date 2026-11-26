@@ -630,7 +630,7 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
                     runTitle == null || runTitle.isEmpty() ? getString(R.string.terbian_gui) : runTitle);
             typeWhenReady(entry.id, command, 0);
             if (appToken != null && runType.distro() != null) {
-                watchAppWindow(entry.id, runType.distro(), appToken, 0);
+                watchAppWindow(entry.id, runType.distro(), appToken, 0, false);
             }
         });
     }
@@ -648,7 +648,7 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
         });
     }
 
-    private void watchAppWindow(String sessionId, Distro distro, String token, int attempt) {
+    private void watchAppWindow(String sessionId, Distro distro, String token, int attempt, boolean seen) {
         java.io.File flag = new java.io.File(distro.rootfsDir(this), "root/.vnc/app-" + token + ".port");
         if (flag.isFile() && flag.length() > 0) {
             int port = 0;
@@ -667,8 +667,9 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
             }
             return;
         }
-        if (attempt < 1200 && SessionRegistry.getInstance(this).get(sessionId) != null) {
-            sessionPager.postDelayed(() -> watchAppWindow(sessionId, distro, token, attempt + 1), 250);
+        boolean exists = SessionRegistry.getInstance(this).get(sessionId) != null;
+        if (attempt < 1200 && (exists || (!seen && attempt < 120))) {
+            sessionPager.postDelayed(() -> watchAppWindow(sessionId, distro, token, attempt + 1, seen || exists), 250);
         }
     }
 
