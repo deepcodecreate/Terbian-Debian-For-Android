@@ -142,12 +142,19 @@ jobs:
       - name: Build APK
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon assembleRelease \
-            -PskipProot \
-            -ProotfsArch=${{ matrix.rootfs }} \
-            -PonlyAbi=${{ matrix.target }} \
-            -PappVersionName=${{ needs.meta.outputs.name }} \
-            -PappVersionCode=${{ needs.meta.outputs.code }}
+          for attempt in 1 2 3; do
+            if ./gradlew --no-daemon assembleRelease \
+              -PskipProot \
+              -ProotfsArch=${{ matrix.rootfs }} \
+              -PonlyAbi=${{ matrix.target }} \
+              -PappVersionName=${{ needs.meta.outputs.name }} \
+              -PappVersionCode=${{ needs.meta.outputs.code }}; then
+              exit 0
+            fi
+            echo "Build attempt $attempt failed, retrying in 60 s"
+            sleep 60
+          done
+          exit 1
       - name: Collect APK
         run: |
           mkdir -p dist
