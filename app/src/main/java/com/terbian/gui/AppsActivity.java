@@ -17,7 +17,6 @@
 package com.terbian.gui;
 
 import android.content.Intent;
-import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -32,18 +31,17 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.view.WindowCompat;
 
 import com.terbian.R;
 import com.terbian.debian.Distro;
 import com.terbian.prefs.AppSettings;
+import com.terbian.terminal.SessionType;
 import com.terbian.ui.BaseActivity;
+import com.terbian.ui.MainActivity;
 import com.terbian.ui.ThemeApplier;
 import com.terbian.ui.ThemePalette;
 
@@ -54,9 +52,8 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class AppsActivity extends BaseActivity implements TerbianDesktopManager.Ui {
+public class AppsActivity extends BaseActivity {
     private final ExecutorService io = Executors.newFixedThreadPool(2);
-    private final TerbianDesktopManager manager = TerbianDesktopManager.get();
 
     private ThemePalette p;
     private Distro distro;
@@ -68,9 +65,6 @@ public class AppsActivity extends BaseActivity implements TerbianDesktopManager.
     private TextView emptyView;
     private TextView chipDebian;
     private TextView chipUbuntu;
-    private LinearLayout busyCard;
-    private TextView busyText;
-    private boolean launching;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,19 +93,6 @@ public class AppsActivity extends BaseActivity implements TerbianDesktopManager.
         setContentView(root);
         refreshChips();
         reload();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        manager.setUi(this);
-        renderBusy();
-    }
-
-    @Override
-    protected void onPause() {
-        manager.clearUi(this);
-        super.onPause();
     }
 
     @Override
@@ -200,28 +181,6 @@ public class AppsActivity extends BaseActivity implements TerbianDesktopManager.
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
         sp.topMargin = dp(10);
         content.addView(search, sp);
-
-        busyCard = new LinearLayout(this);
-        busyCard.setOrientation(LinearLayout.HORIZONTAL);
-        busyCard.setGravity(Gravity.CENTER_VERTICAL);
-        busyCard.setPadding(dp(16), dp(12), dp(16), dp(12));
-        ThemeApplier.styleRow(busyCard, p);
-        ProgressBar bar = new ProgressBar(this);
-        bar.setIndeterminate(true);
-        bar.setIndeterminateTintList(ColorStateList.valueOf(p.primary));
-        busyCard.addView(bar, new LinearLayout.LayoutParams(dp(28), dp(28)));
-        busyText = new TextView(this);
-        busyText.setTextColor(p.muted);
-        busyText.setTextSize(13);
-        busyText.setMaxLines(3);
-        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        tp.setMarginStart(dp(12));
-        busyCard.addView(busyText, tp);
-        busyCard.setVisibility(View.GONE);
-        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        bp.topMargin = dp(10);
-        content.addView(busyCard, bp);
 
         emptyView = new TextView(this);
         emptyView.setTextColor(p.muted);
@@ -386,95 +345,13 @@ public class AppsActivity extends BaseActivity implements TerbianDesktopManager.
     }
 
     private void launch(LinuxApps.Entry entry) {
-        if (launching || manager.isBusy()) {
-            Toast.makeText(this, R.string.apps_busy, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        launching = true;
-        busyText.setText(getString(R.string.apps_opening, entry.name));
-        renderBusy();
-        manager.launchAppAsync(this, distro, entry.name, entry.command);
-    }
-
-    @Override
-    public void onLog(String line) {
-        runOnUiThread(() -> {
-            if (!launching || busyText == null) {
-                return;
-            }
-            String[] lines = line.trim().split("\n");
-            for (int i = lines.length - 1; i >= 0; i--) {
-                if (!lines[i].trim().isEmpty()) {
-                    busyText.setText(lines[i].trim());
-                    return;
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onStatus(DesktopStatus status) {
-    }
-
-    @Override
-    public void onComplete() {
-        runOnUiThread(() -> {
-            launching = false;
-            renderBusy();
-        });
-    }
-
-    @Override
-    public void onWarning(String message) {
-        runOnUiThread(() -> {
-            launching = false;
-            renderBusy();
-            if (!isDestroyed()) {
-                new AlertDialog.Builder(this).setMessage(message)
-                        .setPositiveButton(android.R.string.ok, null).show();
-            }
-        });
-    }
-
-    @Override
-    public void onError(String message) {
-        runOnUiThread(() -> {
-            launching = false;
-            renderBusy();
-            if (isDestroyed()) {
-                return;
-            }
-            AlertDialog.Builder dialog = new AlertDialog.Builder(this)
-                    .setMessage(message)
-                    .setPositiveButton(android.R.string.ok, null);
-            if (message.contains("Install the desktop") || message.contains("password")) {
-                dialog.setNeutralButton(R.string.terbian_gui,
-                        (d, w) -> startActivity(new Intent(this, TerbianGuiActivity.class)));
-            }
-            dialog.show();
-        });
-    }
-
-    @Override
-    public void onAppReady(int display) {
-        runOnUiThread(() -> {
-            launching = false;
-            renderBusy();
-            if (isDestroyed()) {
-                return;
-            }
-            Intent intent = new Intent(this, VncViewerActivity.class);
-            intent.putExtra(VncViewerActivity.EXTRA_CONNECT, true);
-            intent.putExtra(VncViewerActivity.EXTRA_PORT, 5900 + display);
-            startActivity(intent);
-        });
-    }
-
-    private void renderBusy() {
-        if (busyCard == null) {
-            return;
-        }
-        busyCard.setVisibility(launching || manager.isBusy() ? View.VISIBLE : View.GONE);
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra(MainActivity.EXTRA_RUN_COMMAND, entry.command);
+        intent.putExtra(MainActivity.EXTRA_RUN_TITLE, entry.name);
+        intent.putExtra(MainActivity.EXTRA_RUN_TYPE, SessionType.forDistro(distro).name());
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
     }
 
     private int dp(int value) {

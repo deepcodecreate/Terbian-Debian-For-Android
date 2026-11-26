@@ -91,7 +91,6 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
     private ImageButton newSessionButton;
     private ImageButton menuButton;
     private ImageButton quickButton;
-    private ImageButton pasteButton;
     private TabLayout sessionTabs;
     private ViewPager2 sessionPager;
     private ScrollView installOverlayScroll;
@@ -407,11 +406,8 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
         int at = bar.indexOfChild(newSessionButton);
         ViewGroup.LayoutParams size = newSessionButton.getLayoutParams();
         quickButton = buildToolbarButton(R.drawable.ic_quick_bolt, R.string.quick_commands);
-        pasteButton = buildToolbarButton(R.drawable.ic_quick_paste, R.string.paste);
         bar.addView(quickButton, at, new ViewGroup.LayoutParams(size.width, size.height));
-        bar.addView(pasteButton, at + 1, new ViewGroup.LayoutParams(size.width, size.height));
         quickButton.setOnClickListener(this::showQuickCommands);
-        pasteButton.setOnClickListener(v -> pasteFromClipboard());
     }
 
     private ImageButton buildToolbarButton(int icon, int description) {
@@ -449,7 +445,7 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
             return;
         }
 
-        byte[] data = {12};
+        byte[] data = "\u0015clear\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         session.write(data, 0, data.length);
     }
 
@@ -714,7 +710,6 @@ public class MainActivity extends BaseActivity implements ExtraKeysView.Host {
         ThemeApplier.tintIcon(newSessionButton, palette.foreground);
         ThemeApplier.tintIcon(menuButton, palette.foreground);
         ThemeApplier.tintIcon(quickButton, palette.foreground);
-        ThemeApplier.tintIcon(pasteButton, palette.foreground);
         styleTerminalCard();
         ThemeApplier.styleTabLayout(sessionTabs, palette);
         installOverlayRoot.setBackgroundColor(palette.background);

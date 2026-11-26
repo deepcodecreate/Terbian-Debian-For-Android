@@ -121,7 +121,7 @@ wait_port() {
 session_ready() {
   local d="$1" f p
   for f in /proc/[0-9]*/comm; do
-    case "$(cat "$f" 2>/dev/null)" in xfwm4|openbox) ;; *) continue;; esac
+    [ "$(cat "$f" 2>/dev/null)" = xfwm4 ] || continue
     p="${f#/proc/}"; p="${p%/comm}"
     if tr '\0' '\n' < "/proc/$p/environ" 2>/dev/null | grep -qx "DISPLAY=:$d"; then return 0; fi
   done
@@ -129,11 +129,6 @@ session_ready() {
 }
 wait_session() {
   local d="$1" sp spid="" i
-  if [ -n "${TERBIAN_APP:-}" ] && ! command -v xfwm4 >/dev/null 2>&1 && ! command -v openbox >/dev/null 2>&1; then
-    sleep 2
-    echo "TERBIAN_DESKTOP_READY"
-    return 0
-  fi
   sp=$(session_pidfile "$d")
   if [ -r "$sp" ]; then spid=$(tr -d ' \n' < "$sp"); fi
   for i in $(seq 1 300); do
@@ -194,59 +189,9 @@ start_direct() {
     exit 1
   fi
   echo "[terbian-gui] starting the desktop session"
-  local startup="$HOME/.vnc/xstartup"
-  if [ -n "${TERBIAN_APP:-}" ]; then
-    startup="$HOME/.vnc/xstartup-app-$d"
-    write_app_startup "$startup"
-  fi
-  DISPLAY=":$d" XAUTHORITY="$auth" nohup setsid "$startup" \
+  DISPLAY=":$d" XAUTHORITY="$auth" nohup setsid "$HOME/.vnc/xstartup" \
     >"$HOME/.vnc/terbian-session-$d.log" 2>&1 </dev/null &
   echo $! > "$(session_pidfile "$d")"
-}
-
-write_app_startup() {
-  cat > "$1" <<'XA'
-#!/bin/sh
-unset SESSION_MANAGER DBUS_SESSION_BUS_ADDRESS
-N="${DISPLAY##*:}"; N="${N%%.*}"
-export XDG_RUNTIME_DIR="/tmp/runtime-root-${N:-1}"; mkdir -p "$XDG_RUNTIME_DIR"; chmod 700 "$XDG_RUNTIME_DIR"
-export LIBGL_ALWAYS_SOFTWARE=1 NO_AT_BRIDGE=1
-[ -s /etc/machine-id ] || dbus-uuidgen --ensure 2>/dev/null
-if command -v dbus-launch >/dev/null 2>&1; then
-  eval "$(dbus-launch --sh-syntax)"
-fi
-if command -v xfwm4 >/dev/null 2>&1; then
-  xfwm4 --compositor=off >/dev/null 2>&1 &
-elif command -v openbox >/dev/null 2>&1; then
-  openbox >/dev/null 2>&1 &
-fi
-xsetroot -solid '#1e1e24' 2>/dev/null
-sleep 1
-sh -c "$TERBIAN_APP"
-clients_left() {
-  local f p c
-  for f in /proc/[0-9]*/environ; do
-    p="${f#/proc/}"; p="${p%/environ}"
-    [ "$p" = "$$" ] && continue
-    c="$(cat "/proc/$p/comm" 2>/dev/null)"
-    case "$c" in
-      xfwm4|openbox|dbus-daemon|dbus-launch|sh|xsetroot|cat|sleep|tr|grep|Xtigervnc|at-spi*|dconf-service|gvfs*|xfconfd|ibus*|pulseaudio) continue;;
-    esac
-    if tr '\0' '\n' < "$f" 2>/dev/null | grep -qx "DISPLAY=:$N"; then return 0; fi
-  done
-  return 1
-}
-sleep 2
-gone=0
-while [ "$gone" -lt 3 ]; do
-  if clients_left; then gone=0; else gone=$((gone + 1)); fi
-  sleep 2
-done
-[ -n "${DBUS_SESSION_BUS_PID:-}" ] && kill "$DBUS_SESSION_BUS_PID" 2>/dev/null
-[ -r "/tmp/.X$N-lock" ] && kill "$(tr -d ' \n' < "/tmp/.X$N-lock")" 2>/dev/null
-exit 0
-XA
-  chmod +x "$1"
 }
 
 write_xstartup() {
@@ -335,12 +280,6 @@ case "${1:-help}" in
       PORT=$((5900 + DISP))
     fi
     echo "[terbian-gui] $TB_ID: using display :$DISP"
-    if [ -n "${TERBIAN_APP:-}" ] && ! command -v xfwm4 >/dev/null 2>&1 && ! command -v openbox >/dev/null 2>&1; then
-      echo "[terbian-gui] installing a light window manager (one time) ..."
-      apt-get update -qq || true
-      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openbox \
-        || echo "Could not install openbox, the app will open without window frames."
-    fi
     write_xstartup
     sync_tigervnc_config
     echo "Starting $TB_ID desktop on display :$DISP ..."

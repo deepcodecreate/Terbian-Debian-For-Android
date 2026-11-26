@@ -90,7 +90,7 @@ public final class LinuxApps {
                 }
                 String guestPath = "/" + dir + "/" + file.getName();
                 String name = file.getName().substring(0, file.getName().length() - ".AppImage".length());
-                String command = "chmod +x " + shellQuote(guestPath) + " 2>/dev/null; APPIMAGE_EXTRACT_AND_RUN=1 exec "
+                String command = "chmod +x " + shellQuote(guestPath) + " 2>/dev/null; APPIMAGE_EXTRACT_AND_RUN=1 "
                         + shellQuote(guestPath);
                 if (seen.add(name.toLowerCase(Locale.ROOT) + "|" + command)) {
                     result.add(new Entry(name, command, null, true, guestPath));
@@ -162,7 +162,7 @@ public final class LinuxApps {
         if (command.isEmpty()) {
             return null;
         }
-        return new Entry(name, "cd /root 2>/dev/null; exec " + command, icon, false, file.getName());
+        return new Entry(name, command, icon, false, file.getName());
     }
 
     static String cleanExec(String exec) {
